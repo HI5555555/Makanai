@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Makanai</string>
+
+    <string name="home_screen_title">Home Screen</string>
+    <string name="search_screen_title">Search Screen</string>
+    <string name="add_post_screen_title">Add Post Screen</string>
+    <string name="ai_chef_screen_title">AI Chef Screen</string>
+    <string name="profile_screen_title">Profile Screen</string>
 </resources>
