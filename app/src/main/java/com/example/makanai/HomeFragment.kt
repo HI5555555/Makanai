@@ -3,19 +3,18 @@ package com.example.makanai
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
+
+import com.example.makanai.Recipe
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // --- 1. Setup Categories List ---
-
-        // Find the RecyclerView for categories
+        // --- 1. Setup Categories List (This code is fine) ---
         val categoriesRecyclerView: RecyclerView = view.findViewById(R.id.categories_recycler_view)
-
-        // Create dummy data for categories
         val categories = listOf(
             Category("朝食", R.drawable.ic_breakfast),
             Category("昼食", R.drawable.ic_lunch),
@@ -23,27 +22,22 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             Category("軽食", R.drawable.ic_snack),
             Category("デザート", R.drawable.ic_dessert)
         )
-
-        // Create and set the adapter
         val categoryAdapter = CategoryAdapter(categories)
         categoriesRecyclerView.adapter = categoryAdapter
 
 
-        // --- 2. Setup Popular Recipes List ---
-
-        // Find the RecyclerView for popular recipes
+        // --- 2. Setup Popular Recipes List (UPDATED) ---
         val popularRecyclerView: RecyclerView = view.findViewById(R.id.popular_recycler_view)
 
-        // Create dummy data for popular recipes
-        val popularRecipes = listOf(
-            Recipe(1, "Classic Granola Bowl", "A perfect breakfast", "", R.drawable.img_granola),
-            Recipe(2, "Mediterranean Bowl", "Healthy and colorful", "", R.drawable.img_buddha_bowl),
-            Recipe(3, "Fruit Salad", "Refreshing and delicious", "", R.drawable.img_fruit_salad),
-            // Add more recipes as needed
-        )
+        // Get the recipes from our new repository
+        val popularRecipes = RecipeRepository.getRecipes()
 
-        // Create and set the adapter
-        val popularRecipeAdapter = PopularRecipeAdapter(popularRecipes)
+        val popularRecipeAdapter = PopularRecipeAdapter(popularRecipes) { recipe ->
+            // This navigation code is already correct
+            val action = HomeFragmentDirections.actionHomeFragmentToRecipeDetailFragment(recipe.id)
+            findNavController().navigate(action)
+        }
+
         popularRecyclerView.adapter = popularRecipeAdapter
     }
 }

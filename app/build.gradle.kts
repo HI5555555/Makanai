@@ -2,6 +2,16 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("kotlin-parcelize")
+
+
+    id("androidx.navigation.safeargs.kotlin")
+
+
+
+
+
+
+
 }
 
 android {
@@ -48,11 +58,4 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-
-
-    // Navigation Component
-    val nav_version = "2.7.7" // Use the latest version
-    implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
-    implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
 }
