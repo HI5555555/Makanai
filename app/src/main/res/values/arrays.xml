@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="sort_options">
+        <item>人気順</item>
+        <item>新着順</item>
+        <item>調理時間が短い順</item>
+    </string-array>
+</resources>

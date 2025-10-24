@@ -7,9 +7,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-// 1. Update the constructor to accept a click listener function
+// 1. Change 'val' to 'var' here
 class PopularRecipeAdapter(
-    private val recipes: List<Recipe>,
+    private var recipes: List<Recipe>,
     private val onItemClicked: (Recipe) -> Unit
 ) : RecyclerView.Adapter<PopularRecipeAdapter.RecipeViewHolder>() {
 
@@ -34,15 +34,20 @@ class PopularRecipeAdapter(
         holder.image.setImageResource(recipe.imageResId)
         holder.title.text = recipe.title
         holder.author.text = recipe.author
-        holder.time.text = recipe.prepTime
+        holder.time.text = recipe.prepTime // Make sure this is prepTime
         holder.likes.text = recipe.likes.toString()
         holder.category.text = recipe.category
 
-        // 2. Set the click listener on the whole card
         holder.itemView.setOnClickListener {
             onItemClicked(recipe)
         }
     }
 
     override fun getItemCount() = recipes.size
+
+    // 2. Add this new function
+    fun updateData(newRecipes: List<Recipe>) {
+        recipes = newRecipes
+        notifyDataSetChanged() // Refreshes the list
+    }
 }
