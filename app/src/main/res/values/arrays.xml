@@ -5,4 +5,18 @@
         <item>新着順</item>
         <item>調理時間が短い順</item>
     </string-array>
+
+    <string-array name="recipe_categories">
+        <item>朝食</item>
+        <item>昼食</item>
+        <item>夕食</item>
+        <item>軽食</item>
+        <item>デザート</item>
+    </string-array>
+
+    <string-array name="recipe_difficulties">
+        <item>簡単</item>
+        <item>普通</item>
+        <item>難しい</item>
+    </string-array>
 </resources>

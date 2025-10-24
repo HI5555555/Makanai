@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="top"
+    android:layout_marginTop="8dp">
+
+    <TextView
+        android:id="@+id/step_number"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/category_tag_background"
+        android:backgroundTint="#FF6347"
+        android:gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="1" />
+
+    <EditText
+        android:id="@+id/step_input"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/comment_input_background"
+        android:hint="手順"
+        android:inputType="textMultiLine|textCapSentences"
+        android:padding="12dp"
+        android:minHeight="48dp"/>
+
+    <ImageButton
+        android:id="@+id/delete_step_button"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/comment_input_background"
+        android:backgroundTint="#FFEDED"
+        android:contentDescription="Delete Step"
+        android:src="@drawable/ic_close"
+        app:tint="@color/design_default_color_error" />
+</LinearLayout>
