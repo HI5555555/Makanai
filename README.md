@@ -1,4 +1,7 @@
 # Makanai
+# Word
+https://kosenjp-my.sharepoint.com/:w:/g/personal/k22093rt_kitakyushu_kosen-ac_jp/EbOtxMJgBcpLngCbIXR3DQ8BoY4pYZXejwmTxOELSQlDmA
+
 # UX-UI Figma:
 https://www.figma.com/make/xVBWMo4hYIfm33BYOxgSta/Makanai-App-UI-Design?node-id=0-1&p=f&t=hQGeOIv1oqKVUzI2-0
 
