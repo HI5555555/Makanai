@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "246870000473",
+    "project_id": "makanai-app",
+    "storage_bucket": "makanai-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:246870000473:android:f0914d2f7e7ba85b388248",
+        "android_client_info": {
+          "package_name": "com.example.makanai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAa2x2XR6WK2X_pJEtX9OI5TfpTPhgmaNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
