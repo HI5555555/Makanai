@@ -58,8 +58,8 @@ class SettingsFragment : Fragment() {
         // --- Setup Other Click Listeners ---
         backButton.setOnClickListener { findNavController().popBackStack() }
         logoutButtonLayout.setOnClickListener {
-            showToast("Logout Clicked")
-            // TODO: Logout logic
+            // Navigation to Login
+            findNavController().navigate(R.id.action_settingsFragment_to_loginFragment)
         }
     }
 
