@@ -3,7 +3,7 @@ package com.example.makanai
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
-import android.widget.TextView // Import TextView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -30,8 +30,6 @@ class RegisterFragment : Fragment(R.layout.fragment_register) {
         val emailInput = view.findViewById<TextInputEditText>(R.id.reg_email_edit_text)
         val passwordInput = view.findViewById<TextInputEditText>(R.id.reg_password_edit_text)
         val registerButton = view.findViewById<Button>(R.id.register_button)
-
-        // Find links and back buttons
         val loginLink = view.findViewById<TextView>(R.id.login_link)
         val backButton = view.findViewById<View>(R.id.register_back_button)
 
@@ -61,10 +59,16 @@ class RegisterFragment : Fragment(R.layout.fragment_register) {
 
                         db.collection("users").document(userId).set(userMap)
                             .addOnSuccessListener {
-                                Toast.makeText(context, "Account created!", Toast.LENGTH_SHORT).show()
-                                // Navigate to Home
-                                findNavController().navigate(R.id.action_loginFragment_to_homeFragment)
-                                // Note: We navigate to Home, effectively logging them in
+                                // --- SUCCESS LOGIC CHANGED HERE ---
+
+                                // A. Show success message
+                                Toast.makeText(context, "Registration successful! Please login.", Toast.LENGTH_LONG).show()
+
+                                // B. Sign out immediately (so they aren't auto-logged in yet)
+                                auth.signOut()
+
+                                // C. Go back to the previous screen (LoginFragment)
+                                findNavController().popBackStack()
                             }
                             .addOnFailureListener {
                                 Toast.makeText(context, "Failed to save user data", Toast.LENGTH_SHORT).show()
