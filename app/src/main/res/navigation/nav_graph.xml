@@ -16,11 +16,7 @@
             app:destination="@id/recipeDetailFragment" />
     </fragment>
 
-    <fragment
-        android:id="@+id/searchFragment"
-        android:name="com.example.makanai.SearchFragment"
-        android:label="Search"
-        tools:layout="@layout/fragment_search" />
+
     <fragment
         android:id="@+id/addPostFragment"
         android:name="com.example.makanai.AddPostFragment"
@@ -31,11 +27,7 @@
         android:name="com.example.makanai.AiChefFragment"
         android:label="AI Chef"
         tools:layout="@layout/fragment_ai_chef" />
-    <fragment
-        android:id="@+id/profileFragment"
-        android:name="com.example.makanai.ProfileFragment"
-        android:label="Profile"
-        tools:layout="@layout/fragment_profile" />
+
 
 
     <fragment
@@ -60,5 +52,24 @@
             app:destination="@id/recipeDetailFragment" />
 
     </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.makanai.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" >
+        <action
+            android:id="@+id/action_profileFragment_to_settingsFragment"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.makanai.SettingsFragment"
+        android:label="Settings"
+        tools:layout="@layout/fragment_settings" >
+    </fragment>
+
+
 
 </navigation>
