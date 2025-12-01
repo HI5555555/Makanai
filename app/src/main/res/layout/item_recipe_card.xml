@@ -8,7 +8,8 @@
     android:layout_marginStart="16dp"
     android:layout_marginEnd="16dp"
     android:layout_marginBottom="16dp"
-    app:cardCornerRadius="16dp">
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -71,11 +72,21 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginTop="8dp">
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_chef"
-                    app:tint="@android:color/darker_gray"/>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    android:layout_marginEnd="4dp">
+                    <ImageView
+                        android:id="@+id/author_image_card"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_profile" />
+                </androidx.cardview.widget.CardView>
+
                 <TextView
                     android:id="@+id/recipe_author"
                     android:layout_width="wrap_content"
@@ -83,10 +94,12 @@
                     android:layout_marginStart="4dp"
                     android:textColor="@android:color/darker_gray"
                     tools:text="Chef Kosen" />
+
                 <View
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_weight="1" />
+
                 <ImageView
                     android:layout_width="16dp"
                     android:layout_height="16dp"
@@ -100,6 +113,7 @@
                     android:textColor="@android:color/darker_gray"
                     tools:text="10 min" />
             </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

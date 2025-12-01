@@ -1,45 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="top"
-    android:layout_marginTop="8dp">
+    android:orientation="vertical"
+    android:layout_marginTop="16dp">
 
-    <TextView
-        android:id="@+id/step_number"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:background="@drawable/category_tag_background"
-        android:backgroundTint="#FF6347"
-        android:gravity="center"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        tools:text="1" />
-
-    <EditText
-        android:id="@+id/step_input"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/comment_input_background"
-        android:hint="手順"
-        android:inputType="textMultiLine|textCapSentences"
-        android:padding="12dp"
-        android:minHeight="48dp"/>
+        android:orientation="horizontal"
+        android:gravity="top">
 
-    <ImageButton
-        android:id="@+id/delete_step_button"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="8dp"
-        android:background="@drawable/comment_input_background"
-        android:backgroundTint="#FFEDED"
-        android:contentDescription="Delete Step"
-        android:src="@drawable/ic_close"
-        app:tint="@color/design_default_color_error" />
+        <TextView
+            android:id="@+id/step_number"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@drawable/category_tag_background"
+            android:backgroundTint="#FF6347"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/step_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/comment_input_background"
+            android:hint="手順の説明..."
+            android:inputType="textMultiLine"
+            android:padding="12dp"
+            android:minHeight="48dp"
+            android:textSize="16sp"/>
+
+        <ImageButton
+            android:id="@+id/remove_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_close"
+            android:background="@drawable/comment_input_background"
+            android:padding="8dp"
+            app:tint="@color/design_default_color_error" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/step_image_container"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginStart="38dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/comment_input_background">
+
+        <ImageView
+            android:id="@+id/step_image_placeholder"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_upload"
+            app:tint="@android:color/darker_gray" />
+
+        <ImageView
+            android:id="@+id/step_image_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
 </LinearLayout>

@@ -34,7 +34,7 @@
         tools:layout="@layout/fragment_recipe_detail" >
         <argument
             android:name="recipeId"
-            app:argType="integer" />
+            app:argType="string" />
     </fragment>
 
     <fragment
@@ -55,6 +55,10 @@
         <action
             android:id="@+id/action_profileFragment_to_settingsFragment"
             app:destination="@id/settingsFragment" />
+
+        <action
+            android:id="@+id/actionProfileFragmentToRecipeDetailFragment"
+            app:destination="@id/recipeDetailFragment" />
     </fragment>
 
     <fragment
