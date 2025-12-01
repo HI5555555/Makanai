@@ -12,6 +12,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
+
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private lateinit var popularRecipeAdapter: PopularRecipeAdapter
@@ -28,7 +29,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             Category("昼食", R.drawable.ic_lunch),
             Category("夕食", R.drawable.ic_dinner),
             Category("軽食", R.drawable.ic_snack),
-            Category("デザート", R.drawable.ic_dessert)
+            Category("デザート", R.drawable.ic_dessert) ,
+            Category("ヘルシー", R.drawable.ic_healthy)
         )
         val categoryAdapter = CategoryAdapter(categories)
         categoriesRecyclerView.adapter = categoryAdapter

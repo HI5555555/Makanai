@@ -1,7 +1,7 @@
 package com.example.makanai
 
 import android.graphics.Color
-import android.net.Uri // --- FIX 1: Added missing import
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -71,7 +71,10 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val servings: TextView = view.findViewById(R.id.detail_servings)
         val difficulty: TextView = view.findViewById(R.id.detail_difficulty)
         val ingredientsList: TextView = view.findViewById(R.id.detail_ingredients_list)
+
+        // The Container for dynamic step layouts
         val stepsContainer: LinearLayout = view.findViewById(R.id.detail_steps_container)
+
         val backButton: ImageButton = view.findViewById(R.id.back_button)
         val likeButton: ImageButton = view.findViewById(R.id.like_button)
 
@@ -86,15 +89,18 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         previewImage = view.findViewById(R.id.comment_image_preview)
         val removeImageButton: ImageButton = view.findViewById(R.id.remove_comment_image)
 
+        // --- 2. Get Recipe ID ---
         val recipeId = args.recipeId.toString()
 
-        // --- 2. Fetch Recipe Data ---
+        // --- 3. Fetch Recipe Data ---
         db.collection("recipes").document(recipeId).get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val recipe = document.toObject(Recipe::class.java)
 
                     recipe?.let { r ->
+                        // --- MERGED UPDATE START ---
+
                         // Load Main Info
                         if (r.imageUrl.isNotEmpty()) {
                             recipeImage.load(r.imageUrl) { crossfade(true) }
@@ -104,23 +110,51 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                         prepTime.text = r.prepTime
                         servings.text = r.servings
                         difficulty.text = r.difficulty
-                        ingredientsList.text = r.ingredients.joinToString(separator = "\n") { "・ $it" }
 
-                        // Load Steps
+                        // Load Ingredients (Formatted nicely)
+                        // Note: Assuming Recipe.kt has List<Map<String, String>> from AddPost
+                        // Format Ingredients List
+                        val formattedIngredients = StringBuilder()
+                        for (ingredientMap in r.ingredients) {
+                            // Check if it's a Map (new structure) or String (old structure compatibility)
+                            if (ingredientMap is Map<*, *>) {
+                                val name = ingredientMap["name"] as? String ?: ""
+                                val quantity = ingredientMap["quantity"] as? String ?: ""
+                                val unit = ingredientMap["unit"] as? String ?: ""
+                                if (name.isNotEmpty()) {
+                                    formattedIngredients.append("・ $name $quantity$unit\n")
+                                }
+                            } else if (ingredientMap is String) {
+                                // Fallback for old data
+                                formattedIngredients.append("・ $ingredientMap\n")
+                            }
+                        }
+                        ingredientsList.text = formattedIngredients.toString().trim()
+
+                        // Load Steps (Dynamic Layouts)
                         stepsContainer.removeAllViews()
                         r.steps.forEachIndexed { index, stepMap ->
+                            // Inflate layout
                             val stepView = LayoutInflater.from(context).inflate(R.layout.item_step_display, stepsContainer, false)
 
-                            stepView.findViewById<TextView>(R.id.step_number).text = (index + 1).toString()
-                            stepView.findViewById<TextView>(R.id.step_text).text = stepMap["text"] ?: ""
-
-                            val imgUrl = stepMap["imageUrl"]
+                            // Find views
+                            val numView = stepView.findViewById<TextView>(R.id.step_number)
+                            val textView = stepView.findViewById<TextView>(R.id.step_text)
                             val imgCard = stepView.findViewById<CardView>(R.id.step_image_card)
                             val imgView = stepView.findViewById<ImageView>(R.id.step_image)
 
+                            // Set Data
+                            numView.text = (index + 1).toString()
+                            textView.text = stepMap["text"] ?: ""
+
+                            val imgUrl = stepMap["imageUrl"]
+
                             if (!imgUrl.isNullOrEmpty()) {
                                 imgCard.visibility = View.VISIBLE
-                                imgView.load(imgUrl) { crossfade(true) }
+                                imgView.load(imgUrl) {
+                                    crossfade(true)
+                                    placeholder(R.drawable.comment_input_background)
+                                }
                             } else {
                                 imgCard.visibility = View.GONE
                             }
@@ -133,11 +167,12 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                         } else {
                             authorName.text = "Unknown Chef"
                         }
+                        // --- MERGED UPDATE END ---
                     }
                 }
             }
 
-        // --- 3. Like Button Logic ---
+        // --- 4. Like Button Logic ---
         val currentUser = auth.currentUser
         if (currentUser != null) {
             val recipeRef = db.collection("recipes").document(recipeId)
@@ -149,7 +184,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                 val isLiked = likedBy.contains(currentUser.uid)
 
                 if (isLiked) {
-                    likeButton.setImageResource(R.drawable.ic_heart_outline)
+                    likeButton.setImageResource(R.drawable.ic_heart_outline) // Use filled if available
                     likeButton.setColorFilter(Color.parseColor("#FF6347"))
                 } else {
                     likeButton.setImageResource(R.drawable.ic_heart_outline)
@@ -182,12 +217,12 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             }
         }
 
-        // --- 4. Comments ---
+        // --- 5. Comments Setup ---
         commentAdapter = CommentAdapter(emptyList())
         commentsRecyclerView.adapter = commentAdapter
         fetchComments(recipeId)
 
-        // --- 5. Listeners ---
+        // --- 6. Click Listeners ---
         backButton.setOnClickListener { findNavController().popBackStack() }
 
         addImageButton.setOnClickListener { pickImage.launch("image/*") }
@@ -200,7 +235,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         sendButton.setOnClickListener { handleSendComment(recipeId) }
     }
 
-    // --- LOGIC ---
+    // --- LOGIC FUNCTIONS ---
 
     private fun handleSendComment(recipeId: String) {
         val text = commentInput.text.toString().trim()
@@ -210,16 +245,14 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             Toast.makeText(context, "Please login to comment", Toast.LENGTH_SHORT).show()
             return
         }
-        // Create a local, immutable copy of the URI to fix the "Smart cast" error
-        val imageUri = selectedCommentImageUri
 
+        val imageUri = selectedCommentImageUri
         if (text.isEmpty() && imageUri == null) return
 
         commentInput.isEnabled = false
         Toast.makeText(context, "Posting...", Toast.LENGTH_SHORT).show()
 
         if (imageUri != null) {
-            // Upload Image First using the safe local variable 'imageUri'
             val filename = UUID.randomUUID().toString()
             val ref = storage.reference.child("comment_images/$filename.jpg")
 
@@ -232,7 +265,6 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                 Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
             }
         } else {
-            // No image, text only
             saveCommentToFirestore(recipeId, user, text, "")
         }
     }

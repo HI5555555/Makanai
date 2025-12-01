@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
@@ -39,7 +38,7 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Find views (using nullable types '?' to be safe with layout variations)
+        // Find views
         val profileImage = view.findViewById<ImageView>(R.id.profile_image)
         val usernameText = view.findViewById<TextView>(R.id.username_text_new)
         val userDescText = view.findViewById<TextView>(R.id.user_desc_text)
@@ -67,8 +66,8 @@ class ProfileFragment : Fragment() {
                 }
             },
             onLikeClicked = { recipe ->
-                // Handle Like
-                //toggleLike(recipe)
+                // Handle Like (Now active!)
+                toggleLike(recipe)
             }
         )
 
@@ -96,30 +95,9 @@ class ProfileFragment : Fragment() {
                 }
 
             // 2. Load User's Own Recipes
-            db.collection("recipes")
-                .whereEqualTo("authorId", currentUser.uid)
-                .get()
-                .addOnSuccessListener { result ->
-                    val list = mutableListOf<Recipe>()
-                    for (document in result) {
-                        try {
-                            val recipe = document.toObject(Recipe::class.java)
-                            recipe.id = document.id
-                            list.add(recipe)
-                        } catch (e: Exception) {
-                            Log.e("Profile", "Error parsing recipe", e)
-                        }
-                    }
-                    myRecipesList = list
-                    recipesCount?.text = list.size.toString()
+            loadUserRecipes(currentUser.uid)
 
-                    // Update list if on "My Recipes" tab (index 0)
-                    if (tabLayout?.selectedTabPosition == 0) {
-                        recipeAdapter.updateData(myRecipesList)
-                    }
-                }
-
-            // 3. Pre-load Favorites (Optional optimization)
+            // 3. Pre-load Favorites
             loadFavorites()
 
         } else {
@@ -139,7 +117,6 @@ class ProfileFragment : Fragment() {
                     }
                     1 -> {
                         // Favorites Tab
-                        // Reload favorites to ensure they are up to date
                         loadFavorites()
                     }
                 }
@@ -196,14 +173,14 @@ class ProfileFragment : Fragment() {
                 transaction.update(recipeRef, "likedBy", FieldValue.arrayUnion(user.uid))
             }
         }.addOnSuccessListener {
-            // If we are on the Favorites tab, reload the list so unliked items disappear
+            // Refresh the lists to reflect changes
             val tabLayout = view?.findViewById<TabLayout>(R.id.tab_layout)
+
             if (tabLayout?.selectedTabPosition == 1) {
+                // If on Favorites tab, reload (unliked item will disappear)
                 loadFavorites()
             } else {
-                // If on My Recipes tab, we might want to refresh to show updated like count/color
-                // But ideally we'd use a SnapshotListener for realtime updates like HomeFragment
-                // For simplicity, let's reload the user's recipes
+                // If on My Recipes tab, reload to update like count UI
                 loadUserRecipes(user.uid)
             }
         }
@@ -222,6 +199,10 @@ class ProfileFragment : Fragment() {
                 }
                 myRecipesList = list
 
+                // Update count
+                view?.findViewById<TextView>(R.id.recipes_count)?.text = list.size.toString()
+
+                // Update adapter if on tab 0
                 val tabLayout = view?.findViewById<TabLayout>(R.id.tab_layout)
                 if (tabLayout?.selectedTabPosition == 0) {
                     recipeAdapter.updateData(myRecipesList)

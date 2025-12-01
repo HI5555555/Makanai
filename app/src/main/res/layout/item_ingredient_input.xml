@@ -1,29 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:layout_marginTop="8dp">
+    android:weightSum="10"
+    android:layout_marginBottom="8dp">
 
     <EditText
-        android:id="@+id/ingredient_input"
+        android:id="@+id/ingredient_name_input"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="@drawable/comment_input_background"
-        android:hint="材料"
-        android:padding="12dp"
-        android:textSize="16sp" />
+        android:layout_height="48dp"
+        android:layout_weight="5"
+        android:background="@drawable/rounded_edittext_background"
+        android:hint="材料名"
+        android:inputType="text"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:layout_marginEnd="8dp"/>
 
-    <ImageButton
-        android:id="@+id/remove_button"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="8dp"
-        android:src="@drawable/ic_close"
-        android:background="@drawable/comment_input_background"
-        android:padding="8dp"
-        app:tint="@color/design_default_color_error" />
+    <EditText
+        android:id="@+id/ingredient_quantity_input"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="2"
+        android:background="@drawable/rounded_edittext_background"
+        android:hint="量"
+        android:inputType="numberDecimal"
+        android:gravity="center"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:layout_marginEnd="8dp"/>
+
+    <Spinner
+        android:id="@+id/ingredient_unit_spinner"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="3"
+        android:background="@drawable/rounded_edittext_background"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"/>
+
 </LinearLayout>
