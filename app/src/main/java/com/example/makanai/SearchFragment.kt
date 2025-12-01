@@ -35,16 +35,17 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         searchRecyclerView = view.findViewById(R.id.search_results_recycler_view)
 
         // 1. Setup Adapter (Initially empty)
-        recipeAdapter = PopularRecipeAdapter(emptyList()) { recipe ->
-            // Pass the ID. If your nav_graph still uses Int, this might need .toInt() or changing graph to String
-            // For Firestore, IDs are Strings.
-            try {
+        recipeAdapter = PopularRecipeAdapter(
+            allRecipes,
+            onRecipeClicked = { recipe ->
                 val action = SearchFragmentDirections.actionSearchFragmentToRecipeDetailFragment(recipe.id)
                 findNavController().navigate(action)
-            } catch (e: Exception) {
-                Log.e("SearchFragment", "Navigation Error: Check nav_graph argument type (Int vs String)", e)
+            },
+            onLikeClicked = {
+                // You can copy the toggleLike function here if you want searching to support liking
+                // Or leave empty for now: {}
             }
-        }
+        )
         searchRecyclerView.adapter = recipeAdapter
 
         // 2. Fetch Real Data from Firestore

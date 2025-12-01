@@ -1,5 +1,6 @@
 package com.example.makanai
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,25 +9,28 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.CircleCropTransformation
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
+// Updated Constructor to take 2 functions
 class PopularRecipeAdapter(
     private var recipes: List<Recipe>,
-    private val onItemClicked: (Recipe) -> Unit
+    private val onRecipeClicked: (Recipe) -> Unit,
+    private val onLikeClicked: (Recipe) -> Unit
 ) : RecyclerView.Adapter<PopularRecipeAdapter.RecipeViewHolder>() {
 
     class RecipeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val image: ImageView = itemView.findViewById(R.id.recipe_image)
         val title: TextView = itemView.findViewById(R.id.recipe_title)
         val author: TextView = itemView.findViewById(R.id.recipe_author)
-        // Ensure you have an author_image_card or author_image in your item_recipe_card.xml
-        // Let's assume the TextView 'recipe_author' is next to an ImageView
-        val authorImage: ImageView? = itemView.findViewById(R.id.author_image_card) // Add ID to XML if needed
-
+        val authorImage: ImageView? = itemView.findViewById(R.id.author_image_card)
         val time: TextView = itemView.findViewById(R.id.recipe_time)
         val likes: TextView = itemView.findViewById(R.id.recipe_likes)
         val category: TextView = itemView.findViewById(R.id.recipe_category)
+
+        // Now this ID exists because we updated XML in Step 1
+        val likeIcon: ImageView = itemView.findViewById(R.id.recipe_like_icon)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecipeViewHolder {
@@ -42,6 +46,7 @@ class PopularRecipeAdapter(
         holder.image.load(recipe.imageUrl) {
             crossfade(true)
             placeholder(R.drawable.img_granola)
+            error(R.drawable.img_granola)
         }
 
         holder.title.text = recipe.title
@@ -49,20 +54,17 @@ class PopularRecipeAdapter(
         holder.likes.text = recipe.likes.toString()
         holder.category.text = recipe.category
 
-        // Placeholder while loading author
+        // Load Author Info
         holder.author.text = "Loading..."
         holder.authorImage?.setImageResource(R.drawable.ic_profile)
 
-        // --- THE BETTER WAY: Fetch Author Info for this Card ---
         if (recipe.authorId.isNotEmpty()) {
             Firebase.firestore.collection("users").document(recipe.authorId).get()
                 .addOnSuccessListener { document ->
                     if (document.exists()) {
                         val name = document.getString("name")
                         val photoUrl = document.getString("profileImageUrl")
-
                         holder.author.text = name ?: "Unknown"
-
                         if (!photoUrl.isNullOrEmpty()) {
                             holder.authorImage?.load(photoUrl) {
                                 transformations(CircleCropTransformation())
@@ -74,7 +76,27 @@ class PopularRecipeAdapter(
             holder.author.text = "Unknown"
         }
 
-        holder.itemView.setOnClickListener { onItemClicked(recipe) }
+        // --- LIKE LOGIC ---
+        val currentUser = Firebase.auth.currentUser
+        val isLiked = if (currentUser != null) {
+            recipe.likedBy.contains(currentUser.uid)
+        } else {
+            false
+        }
+
+        if (isLiked) {
+            // Red for liked
+            holder.likeIcon.setColorFilter(Color.parseColor("#FF6347"))
+            holder.likeIcon.setImageResource(R.drawable.ic_heart_outline)
+        } else {
+            // Gray for unliked
+            holder.likeIcon.setColorFilter(Color.parseColor("#808080"))
+            holder.likeIcon.setImageResource(R.drawable.ic_heart_outline)
+        }
+
+        // Click Listeners
+        holder.likeIcon.setOnClickListener { onLikeClicked(recipe) }
+        holder.itemView.setOnClickListener { onRecipeClicked(recipe) }
     }
 
     override fun getItemCount() = recipes.size

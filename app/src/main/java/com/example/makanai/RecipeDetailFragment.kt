@@ -1,6 +1,7 @@
 package com.example.makanai
 
-import android.net.Uri
+import android.graphics.Color
+import android.net.Uri // --- FIX 1: Added missing import
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,7 +13,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.CircleCropTransformation
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -46,7 +47,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     private var selectedCommentImageUri: Uri? = null
 
     // Image Picker Launcher
-    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             selectedCommentImageUri = uri
             previewCard.visibility = View.VISIBLE
@@ -59,7 +60,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // --- 1. Find Recipe Views ---
+        // --- 1. Find Views ---
         val recipeImage: ImageView = view.findViewById(R.id.detail_recipe_image)
         val title: TextView = view.findViewById(R.id.detail_recipe_title)
         val authorName: TextView = view.findViewById(R.id.author_name)
@@ -72,8 +73,9 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val ingredientsList: TextView = view.findViewById(R.id.detail_ingredients_list)
         val stepsContainer: LinearLayout = view.findViewById(R.id.detail_steps_container)
         val backButton: ImageButton = view.findViewById(R.id.back_button)
+        val likeButton: ImageButton = view.findViewById(R.id.like_button)
 
-        // --- 2. Find Comment Views ---
+        // Comment Views
         val commentsRecyclerView: RecyclerView = view.findViewById(R.id.comments_recycler_view)
         commentsTitle = view.findViewById(R.id.comments_title)
         commentInput = view.findViewById(R.id.comment_input)
@@ -84,10 +86,9 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         previewImage = view.findViewById(R.id.comment_image_preview)
         val removeImageButton: ImageButton = view.findViewById(R.id.remove_comment_image)
 
-
-        // --- 3. Fetch Recipe Data ---
         val recipeId = args.recipeId.toString()
 
+        // --- 2. Fetch Recipe Data ---
         db.collection("recipes").document(recipeId).get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -105,7 +106,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                         difficulty.text = r.difficulty
                         ingredientsList.text = r.ingredients.joinToString(separator = "\n") { "・ $it" }
 
-                        // Load Steps (Dynamic Layouts)
+                        // Load Steps
                         stepsContainer.removeAllViews()
                         r.steps.forEachIndexed { index, stepMap ->
                             val stepView = LayoutInflater.from(context).inflate(R.layout.item_step_display, stepsContainer, false)
@@ -136,31 +137,67 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                 }
             }
 
-        // --- 4. Setup Comments Section ---
+        // --- 3. Like Button Logic ---
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val recipeRef = db.collection("recipes").document(recipeId)
+
+            recipeRef.addSnapshotListener { snapshot, e ->
+                if (e != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
+
+                val likedBy = snapshot.get("likedBy") as? List<String> ?: emptyList()
+                val isLiked = likedBy.contains(currentUser.uid)
+
+                if (isLiked) {
+                    likeButton.setImageResource(R.drawable.ic_heart_outline)
+                    likeButton.setColorFilter(Color.parseColor("#FF6347"))
+                } else {
+                    likeButton.setImageResource(R.drawable.ic_heart_outline)
+                    likeButton.setColorFilter(Color.BLACK)
+                }
+            }
+        }
+
+        likeButton.setOnClickListener {
+            if (currentUser == null) {
+                Toast.makeText(context, "Please login to like", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val recipeRef = db.collection("recipes").document(recipeId)
+
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(recipeRef)
+                val currentLikes = snapshot.getLong("likes") ?: 0
+                val likedBy = snapshot.get("likedBy") as? List<String> ?: emptyList()
+
+                if (likedBy.contains(currentUser.uid)) {
+                    val newLikes = if (currentLikes > 0) currentLikes - 1 else 0
+                    transaction.update(recipeRef, "likes", newLikes)
+                    transaction.update(recipeRef, "likedBy", FieldValue.arrayRemove(currentUser.uid))
+                } else {
+                    transaction.update(recipeRef, "likes", currentLikes + 1)
+                    transaction.update(recipeRef, "likedBy", FieldValue.arrayUnion(currentUser.uid))
+                }
+            }
+        }
+
+        // --- 4. Comments ---
         commentAdapter = CommentAdapter(emptyList())
         commentsRecyclerView.adapter = commentAdapter
         fetchComments(recipeId)
 
-        // --- 5. Click Listeners ---
-
-        // Back
+        // --- 5. Listeners ---
         backButton.setOnClickListener { findNavController().popBackStack() }
 
-        // Pick Comment Image
-        addImageButton.setOnClickListener {
-            pickImage.launch("image/*")
-        }
+        addImageButton.setOnClickListener { pickImage.launch("image/*") }
 
-        // Remove Comment Image
         removeImageButton.setOnClickListener {
             selectedCommentImageUri = null
             previewCard.visibility = View.GONE
         }
 
-        // Send Comment
-        sendButton.setOnClickListener {
-            handleSendComment(recipeId)
-        }
+        sendButton.setOnClickListener { handleSendComment(recipeId) }
     }
 
     // --- LOGIC ---
@@ -173,23 +210,21 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             Toast.makeText(context, "Please login to comment", Toast.LENGTH_SHORT).show()
             return
         }
-        // Don't send if both text and image are empty
-        if (text.isEmpty() && selectedCommentImageUri == null) {
-            return
-        }
+        // Create a local, immutable copy of the URI to fix the "Smart cast" error
+        val imageUri = selectedCommentImageUri
 
-        // Disable input
+        if (text.isEmpty() && imageUri == null) return
+
         commentInput.isEnabled = false
         Toast.makeText(context, "Posting...", Toast.LENGTH_SHORT).show()
 
-        if (selectedCommentImageUri != null) {
-            // Upload Image First
+        if (imageUri != null) {
+            // Upload Image First using the safe local variable 'imageUri'
             val filename = UUID.randomUUID().toString()
             val ref = storage.reference.child("comment_images/$filename.jpg")
 
-            ref.putFile(selectedCommentImageUri!!).addOnSuccessListener {
+            ref.putFile(imageUri).addOnSuccessListener {
                 ref.downloadUrl.addOnSuccessListener { uri ->
-                    // Upload complete, save comment
                     saveCommentToFirestore(recipeId, user, text, uri.toString())
                 }
             }.addOnFailureListener {
@@ -208,7 +243,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             val authorImage = document.getString("profileImageUrl") ?: ""
 
             val newComment = Comment(
-                id = "", // Firestore generates ID
+                id = "",
                 authorId = user.uid,
                 authorName = authorName,
                 authorImageUrl = authorImage,
