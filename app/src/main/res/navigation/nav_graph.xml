@@ -67,6 +67,10 @@
             app:destination="@id/loginFragment"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_settingsFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
     </fragment>
 
     <fragment
@@ -88,6 +92,12 @@
         android:id="@+id/registerFragment"
         android:name="com.example.makanai.RegisterFragment"
         android:label="Register"
+        tools:layout="@layout/fragment_register" />
+
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.example.makanai.EditProfileFragment"
+        android:label="Edit Profile"
         tools:layout="@layout/fragment_register" />
 
 </navigation>

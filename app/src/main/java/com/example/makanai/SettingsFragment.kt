@@ -96,7 +96,10 @@ class SettingsFragment : Fragment() {
         }
 
         // --- Setup Included Settings Items ---
-        setupSettingsItem(view.findViewById(R.id.item_edit_profile), R.drawable.ic_settings_profile, "プロフィールを編集") { showToast("Edit Profile") }
+        setupSettingsItem(view.findViewById(R.id.item_edit_profile), R.drawable.ic_settings_profile, "プロフィールを編集") {
+            // Navigate to Edit Profile
+            findNavController().navigate(R.id.action_settingsFragment_to_editProfileFragment)
+        }
         setupSettingsItem(view.findViewById(R.id.item_change_password), R.drawable.ic_settings_password, "パスワードを変更") { showToast("Change Password") }
         setupSettingsItem(view.findViewById(R.id.item_privacy), R.drawable.ic_settings_privacy, "プライバシー") { showToast("Privacy") }
 
