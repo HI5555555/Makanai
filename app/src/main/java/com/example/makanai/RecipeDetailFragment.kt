@@ -1,5 +1,6 @@
 package com.example.makanai
 
+import android.app.AlertDialog // Added for Delete Dialog
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -7,12 +8,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -46,14 +43,11 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     private lateinit var previewImage: ImageView
     private var selectedCommentImageUri: Uri? = null
 
-    // Image Picker Launcher
-    private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             selectedCommentImageUri = uri
             previewCard.visibility = View.VISIBLE
-            previewImage.load(uri) {
-                crossfade(true)
-            }
+            previewImage.load(uri) { crossfade(true) }
         }
     }
 
@@ -71,19 +65,19 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val servings: TextView = view.findViewById(R.id.detail_servings)
         val difficulty: TextView = view.findViewById(R.id.detail_difficulty)
         val ingredientsList: TextView = view.findViewById(R.id.detail_ingredients_list)
-
-        // The Container for dynamic step layouts
         val stepsContainer: LinearLayout = view.findViewById(R.id.detail_steps_container)
-
         val backButton: ImageButton = view.findViewById(R.id.back_button)
         val likeButton: ImageButton = view.findViewById(R.id.like_button)
+
+        // Delete and Edit Buttons
+        val deleteButton: ImageButton = view.findViewById(R.id.delete_button)
+        val editButton: ImageButton = view.findViewById(R.id.edit_button)
 
         // Comment Views
         val commentsRecyclerView: RecyclerView = view.findViewById(R.id.comments_recycler_view)
         commentsTitle = view.findViewById(R.id.comments_title)
         commentInput = view.findViewById(R.id.comment_input)
         val sendButton: ImageButton = view.findViewById(R.id.comment_send_button)
-
         val addImageButton: ImageButton = view.findViewById(R.id.btn_add_comment_image)
         previewCard = view.findViewById(R.id.comment_image_preview_card)
         previewImage = view.findViewById(R.id.comment_image_preview)
@@ -99,8 +93,6 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                     val recipe = document.toObject(Recipe::class.java)
 
                     recipe?.let { r ->
-                        // --- MERGED UPDATE START ---
-
                         // Load Main Info
                         if (r.imageUrl.isNotEmpty()) {
                             recipeImage.load(r.imageUrl) { crossfade(true) }
@@ -111,63 +103,68 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                         servings.text = r.servings
                         difficulty.text = r.difficulty
 
-                        // Load Ingredients (Formatted nicely)
-                        // Note: Assuming Recipe.kt has List<Map<String, String>> from AddPost
-                        // Format Ingredients List
+                        // --- Format Ingredients (Handling new Map structure) ---
                         val formattedIngredients = StringBuilder()
-                        for (ingredientMap in r.ingredients) {
-                            // Check if it's a Map (new structure) or String (old structure compatibility)
-                            if (ingredientMap is Map<*, *>) {
-                                val name = ingredientMap["name"] as? String ?: ""
-                                val quantity = ingredientMap["quantity"] as? String ?: ""
-                                val unit = ingredientMap["unit"] as? String ?: ""
-                                if (name.isNotEmpty()) {
-                                    formattedIngredients.append("・ $name $quantity$unit\n")
+                        for (item in r.ingredients) {
+                            if (item is Map<*, *>) {
+                                val name = item["name"] ?: ""
+                                val qty = item["quantity"] ?: ""
+                                val unit = item["unit"] ?: ""
+                                if (name.toString().isNotEmpty()) {
+                                    formattedIngredients.append("・ $name $qty$unit\n")
                                 }
-                            } else if (ingredientMap is String) {
-                                // Fallback for old data
-                                formattedIngredients.append("・ $ingredientMap\n")
+                            } else {
+                                // Fallback for old string data
+                                formattedIngredients.append("・ $item\n")
                             }
                         }
                         ingredientsList.text = formattedIngredients.toString().trim()
 
-                        // Load Steps (Dynamic Layouts)
+                        // --- Load Steps (Dynamic) ---
                         stepsContainer.removeAllViews()
                         r.steps.forEachIndexed { index, stepMap ->
-                            // Inflate layout
                             val stepView = LayoutInflater.from(context).inflate(R.layout.item_step_display, stepsContainer, false)
 
-                            // Find views
-                            val numView = stepView.findViewById<TextView>(R.id.step_number)
-                            val textView = stepView.findViewById<TextView>(R.id.step_text)
+                            stepView.findViewById<TextView>(R.id.step_number).text = (index + 1).toString()
+                            stepView.findViewById<TextView>(R.id.step_text).text = stepMap["text"] ?: ""
+
+                            val imgUrl = stepMap["imageUrl"]
                             val imgCard = stepView.findViewById<CardView>(R.id.step_image_card)
                             val imgView = stepView.findViewById<ImageView>(R.id.step_image)
 
-                            // Set Data
-                            numView.text = (index + 1).toString()
-                            textView.text = stepMap["text"] ?: ""
-
-                            val imgUrl = stepMap["imageUrl"]
-
                             if (!imgUrl.isNullOrEmpty()) {
                                 imgCard.visibility = View.VISIBLE
-                                imgView.load(imgUrl) {
-                                    crossfade(true)
-                                    placeholder(R.drawable.comment_input_background)
-                                }
+                                imgView.load(imgUrl) { crossfade(true) }
                             } else {
                                 imgCard.visibility = View.GONE
                             }
                             stepsContainer.addView(stepView)
                         }
 
-                        // Load Author Info
+                        // --- Load Author Info ---
                         if (r.authorId.isNotEmpty()) {
                             loadAuthorInfo(r.authorId, authorName, authorImage, authorDesc)
                         } else {
                             authorName.text = "Unknown Chef"
                         }
-                        // --- MERGED UPDATE END ---
+
+                        // --- Check Ownership (Show Edit/Delete) ---
+                        val currentUser = auth.currentUser
+                        if (currentUser != null && r.authorId == currentUser.uid) {
+                            deleteButton.visibility = View.VISIBLE
+                            editButton.visibility = View.VISIBLE
+
+                            deleteButton.setOnClickListener {
+                                showDeleteConfirmationDialog(recipeId)
+                            }
+                            editButton.setOnClickListener {
+                                val action = RecipeDetailFragmentDirections.actionRecipeDetailFragmentToEditPostFragment(recipeId)
+                                findNavController().navigate(action)
+                            }
+                        } else {
+                            deleteButton.visibility = View.GONE
+                            editButton.visibility = View.GONE
+                        }
                     }
                 }
             }
@@ -184,7 +181,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                 val isLiked = likedBy.contains(currentUser.uid)
 
                 if (isLiked) {
-                    likeButton.setImageResource(R.drawable.ic_heart_outline) // Use filled if available
+                    likeButton.setImageResource(R.drawable.ic_heart_outline) // Should be filled icon ideally
                     likeButton.setColorFilter(Color.parseColor("#FF6347"))
                 } else {
                     likeButton.setImageResource(R.drawable.ic_heart_outline)
@@ -200,7 +197,6 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             }
 
             val recipeRef = db.collection("recipes").document(recipeId)
-
             db.runTransaction { transaction ->
                 val snapshot = transaction.get(recipeRef)
                 val currentLikes = snapshot.getLong("likes") ?: 0
@@ -217,35 +213,67 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             }
         }
 
-        // --- 5. Comments Setup ---
+        // --- 5. Setup Comments ---
         commentAdapter = CommentAdapter(emptyList())
         commentsRecyclerView.adapter = commentAdapter
         fetchComments(recipeId)
 
         // --- 6. Click Listeners ---
         backButton.setOnClickListener { findNavController().popBackStack() }
-
         addImageButton.setOnClickListener { pickImage.launch("image/*") }
-
         removeImageButton.setOnClickListener {
             selectedCommentImageUri = null
             previewCard.visibility = View.GONE
         }
-
         sendButton.setOnClickListener { handleSendComment(recipeId) }
     }
 
-    // --- LOGIC FUNCTIONS ---
+    // --- HELPER FUNCTIONS ---
+
+    private fun loadAuthorInfo(authorId: String, nameView: TextView, imageView: ImageView, descView: TextView) {
+        db.collection("users").document(authorId).get().addOnSuccessListener { userDoc ->
+            if (userDoc.exists()) {
+                nameView.text = userDoc.getString("name") ?: "Chef"
+                descView.text = userDoc.getString("bio") ?: "Home Cook"
+                val photoUrl = userDoc.getString("profileImageUrl")
+                if (!photoUrl.isNullOrEmpty()) {
+                    imageView.load(photoUrl) {
+                        transformations(CircleCropTransformation())
+                        placeholder(R.drawable.ic_profile)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun fetchComments(recipeId: String) {
+        db.collection("recipes").document(recipeId).collection("comments")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) return@addSnapshotListener
+                val commentsList = mutableListOf<Comment>()
+                if (snapshots != null) {
+                    for (doc in snapshots) {
+                        try {
+                            val comment = doc.toObject(Comment::class.java)
+                            commentsList.add(comment)
+                        } catch (e: Exception) {
+                            Log.e("RecipeDetail", "Error parsing comment", e)
+                        }
+                    }
+                }
+                commentAdapter.updateData(commentsList)
+                commentsTitle.text = "コメント (${commentsList.size})"
+            }
+    }
 
     private fun handleSendComment(recipeId: String) {
         val text = commentInput.text.toString().trim()
         val user = auth.currentUser
-
         if (user == null) {
-            Toast.makeText(context, "Please login to comment", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Please login", Toast.LENGTH_SHORT).show()
             return
         }
-
         val imageUri = selectedCommentImageUri
         if (text.isEmpty() && imageUri == null) return
 
@@ -255,7 +283,6 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         if (imageUri != null) {
             val filename = UUID.randomUUID().toString()
             val ref = storage.reference.child("comment_images/$filename.jpg")
-
             ref.putFile(imageUri).addOnSuccessListener {
                 ref.downloadUrl.addOnSuccessListener { uri ->
                     saveCommentToFirestore(recipeId, user, text, uri.toString())
@@ -300,46 +327,29 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         }
     }
 
-    private fun fetchComments(recipeId: String) {
-        db.collection("recipes").document(recipeId).collection("comments")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshots, e ->
-                if (e != null) return@addSnapshotListener
-
-                val commentsList = mutableListOf<Comment>()
-                if (snapshots != null) {
-                    for (doc in snapshots) {
-                        try {
-                            val comment = doc.toObject(Comment::class.java)
-                            commentsList.add(comment)
-                        } catch (e: Exception) {
-                            Log.e("RecipeDetail", "Error parsing comment", e)
-                        }
-                    }
-                }
-                commentAdapter.updateData(commentsList)
-                commentsTitle.text = "コメント (${commentsList.size})"
+    private fun showDeleteConfirmationDialog(recipeId: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete Recipe")
+            .setMessage("Are you sure you want to delete this recipe? This action cannot be undone.")
+            .setPositiveButton("Delete") { dialog, _ ->
+                deleteRecipe(recipeId)
+                dialog.dismiss()
             }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
-    private fun loadAuthorInfo(authorId: String, nameView: TextView, imageView: ImageView, descView: TextView) {
-        db.collection("users").document(authorId).get()
-            .addOnSuccessListener { userDoc ->
-                if (userDoc.exists()) {
-                    val name = userDoc.getString("name")
-                    val bio = userDoc.getString("bio")
-                    val photoUrl = userDoc.getString("profileImageUrl")
-
-                    nameView.text = name ?: "Chef"
-                    descView.text = bio ?: "Home Cook"
-
-                    if (!photoUrl.isNullOrEmpty()) {
-                        imageView.load(photoUrl) {
-                            transformations(CircleCropTransformation())
-                            placeholder(R.drawable.ic_profile)
-                        }
-                    }
-                }
+    private fun deleteRecipe(recipeId: String) {
+        db.collection("recipes").document(recipeId)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(context, "Recipe deleted", Toast.LENGTH_SHORT).show()
+                findNavController().popBackStack()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Error deleting recipe: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 }

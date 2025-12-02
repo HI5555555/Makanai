@@ -22,6 +22,16 @@
         tools:layout="@layout/fragment_add_post" />
 
     <fragment
+        android:id="@+id/editPostFragment"
+        android:name="com.example.makanai.EditPostFragment"
+        android:label="Edit Post"
+        tools:layout="@layout/fragment_add_post">
+        <argument
+            android:name="recipeId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
         android:id="@+id/aiChefFragment"
         android:name="com.example.makanai.AiChefFragment"
         android:label="AI Chef"
@@ -35,6 +45,9 @@
         <argument
             android:name="recipeId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_recipeDetailFragment_to_editPostFragment"
+            app:destination="@id/editPostFragment" />
     </fragment>
 
     <fragment
@@ -102,6 +115,6 @@
         android:id="@+id/editProfileFragment"
         android:name="com.example.makanai.EditProfileFragment"
         android:label="Edit Profile"
-        tools:layout="@layout/fragment_register" />
+        tools:layout="@layout/fragment_edit_profile" />
 
 </navigation>
