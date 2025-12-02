@@ -18,6 +18,8 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
 import com.google.firebase.ktx.Firebase
+import coil.load
+import coil.transform.CircleCropTransformation
 
 class RegisterFragment : Fragment(R.layout.fragment_register) {
 
@@ -28,10 +30,14 @@ class RegisterFragment : Fragment(R.layout.fragment_register) {
     private lateinit var profileImageView: ImageView
 
     // Launcher to pick image from gallery
-    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             selectedImageUri = uri
-            profileImageView.setImageURI(uri) // Show selected image
+            profileImageView.load(uri) {
+                crossfade(true)
+                // Make it round like the final result
+                transformations(coil.transform.CircleCropTransformation())
+            }
         }
     }
 

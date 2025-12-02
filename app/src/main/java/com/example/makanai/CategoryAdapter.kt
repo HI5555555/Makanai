@@ -7,8 +7,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class CategoryAdapter(private val categories: List<Category>) :
-    RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder>() {
+class CategoryAdapter(
+    private val categories: List<Category>,
+    private val onCategoryClicked: (String) -> Unit // Added Click Callback
+) : RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder>() {
 
     class CategoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val icon: ImageView = itemView.findViewById(R.id.category_icon)
@@ -25,7 +27,11 @@ class CategoryAdapter(private val categories: List<Category>) :
         val category = categories[position]
         holder.name.text = category.name
         holder.icon.setImageResource(category.iconResId)
-        // You can add an OnClickListener here later
+
+        // Handle Click
+        holder.itemView.setOnClickListener {
+            onCategoryClicked(category.name)
+        }
     }
 
     override fun getItemCount() = categories.size

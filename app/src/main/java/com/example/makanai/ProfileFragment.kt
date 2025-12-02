@@ -88,8 +88,19 @@ class ProfileFragment : Fragment() {
                         userDescText?.text = document.getString("bio") ?: "No bio yet"
 
                         val imgUrl = document.getString("profileImageUrl")
-                        if (!imgUrl.isNullOrEmpty() && profileImage != null) {
-                            profileImage.load(imgUrl)
+
+                        // Check if URL exists AND is not empty
+                        if (!imgUrl.isNullOrEmpty()) {
+                            // Load real image
+                            if (profileImage != null) {
+                                profileImage.load(imgUrl) {
+                                    crossfade(true)
+                                    transformations(coil.transform.CircleCropTransformation())
+                                }
+                            }
+                        } else {
+                            // FORCE load the default icon if no URL exists
+                            profileImage?.setImageResource(R.drawable.ic_profile)
                         }
                     }
                 }

@@ -155,12 +155,14 @@ class EditProfileFragment : Fragment(R.layout.fragment_edit_profile) {
             "bio" to bio,
             "location" to location
         )
-        // Only update image URL if a new one exists
         if (imageUrl != null) {
             updates["profileImageUrl"] = imageUrl
         }
 
-        db.collection("users").document(uid).update(updates)
+        // CHANGE: Use set() with merge() instead of update()
+        // This creates the document if it's missing!
+        db.collection("users").document(uid)
+            .set(updates, com.google.firebase.firestore.SetOptions.merge())
             .addOnSuccessListener {
                 Toast.makeText(context, "Profile Updated!", Toast.LENGTH_SHORT).show()
                 findNavController().popBackStack()
