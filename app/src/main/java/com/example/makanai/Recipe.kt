@@ -5,7 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class Recipe(
-    var id: String = "", // Ensure ID is a String
+    var id: String = "",
     val title: String = "",
     val description: String = "",
     val category: String = "",
@@ -14,12 +14,17 @@ data class Recipe(
     val difficulty: String = "",
     val authorId: String = "",
     val authorName: String = "",
+    val authorProfileImage: String = "",
     val imageUrl: String = "",
     val likes: Int = 0,
-    // Updated ingredients to List of Maps
+
+    // --- IMPORTANT CHANGE HERE ---
+    // Ingredients are now Maps (Name, Qty, Unit), not Strings
     val ingredients: List<Map<String, String>> = emptyList(),
-    // Updated steps to List of Maps
+
+    // Steps are also Maps (Text, ImageUrl)
     val steps: List<Map<String, String>> = emptyList(),
+
     val likedBy: List<String> = emptyList(),
     val createdAt: Long = 0
 ) : Parcelable

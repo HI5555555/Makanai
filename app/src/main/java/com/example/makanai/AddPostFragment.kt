@@ -14,7 +14,6 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
-import java.util.Date
 import java.util.UUID
 
 class AddPostFragment : Fragment(R.layout.fragment_add_post) {
@@ -43,7 +42,7 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
     private var currentImageTargetView: View? = null
     private var isPickingMainImage = true
 
-    // NEW: Updated Categories and Units
+    // Categories and Units
     private val categories = listOf("朝食", "昼食", "夕食", "軽食", "デザート", "ヘルシー")
     private val unitList = listOf("g", "kg", "ml", "l", "個", "本", "枚", "少々", "適量")
 
@@ -76,64 +75,65 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
         stepsContainer = view.findViewById(R.id.steps_container)
         mainImagePreview = view.findViewById(R.id.image_preview)
         mainUploadPlaceholder = view.findViewById(R.id.upload_placeholder)
-        inputName = view.findViewById(R.id.input_name)
-        inputDesc = view.findViewById(R.id.input_desc)
-        inputTime = view.findViewById(R.id.input_time)
-        inputServings = view.findViewById(R.id.input_servings)
-        spinnerCategory = view.findViewById(R.id.spinner_category)
-        spinnerDifficulty = view.findViewById(R.id.spinner_difficulty)
-        btnPublish = view.findViewById(R.id.btn_publish)
-        val backButton = view.findViewById<ImageButton>(R.id.back_button)
+        inputName = view.findViewById(R.id.recipe_name_input)
+        inputDesc = view.findViewById(R.id.description_input)
+        inputTime = view.findViewById(R.id.prep_time_input)
+        inputServings = view.findViewById(R.id.servings_input)
+        spinnerCategory = view.findViewById(R.id.category_spinner)
+        spinnerDifficulty = view.findViewById(R.id.difficulty_spinner)
+        btnPublish = view.findViewById(R.id.publish_button_bottom)
+
+        val btnPostTop = view.findViewById<Button>(R.id.post_button_top)
+        val backButton = view.findViewById<ImageButton>(R.id.back_button_add_post)
+        val addIngredientBtn = view.findViewById<TextView>(R.id.add_ingredient_button)
+        val addStepBtn = view.findViewById<TextView>(R.id.add_step_button)
+        val imageUploadContainer = view.findViewById<FrameLayout>(R.id.image_upload_container)
 
         // Setup Spinners
         setupSimpleSpinner(spinnerCategory, categories)
         setupSpinnerFromResource(spinnerDifficulty, R.array.recipe_difficulties)
 
         // Listeners
-        view.findViewById<View>(R.id.image_upload_container).setOnClickListener {
+        imageUploadContainer.setOnClickListener {
             isPickingMainImage = true
             pickImage.launch("image/*")
         }
 
-        view.findViewById<TextView>(R.id.btn_add_ingredient).setOnClickListener { addIngredientInput() }
-        view.findViewById<TextView>(R.id.btn_add_step).setOnClickListener { addStepInput() }
+        addIngredientBtn.setOnClickListener { addIngredientInput() }
+        addStepBtn.setOnClickListener { addStepInput() }
         backButton.setOnClickListener { findNavController().popBackStack() }
+        btnPostTop.setOnClickListener { startUploadProcess() }
         btnPublish.setOnClickListener { startUploadProcess() }
 
         // Initialize Empty Rows
-        // Clear any XML placeholder rows to start fresh with Kotlin logic
-        if (ingredientsContainer.childCount > 0) ingredientsContainer.removeAllViews()
-        if (stepsContainer.childCount > 0) stepsContainer.removeAllViews()
-
+        ingredientsContainer.removeAllViews()
+        stepsContainer.removeAllViews()
         addIngredientInput()
         addStepInput()
     }
 
-    // --- LOGIC: Dynamic Fields ---
+    // --- LOGIC ---
 
     private fun addIngredientInput() {
-        // Inflate new 3-part ingredient layout
+        // Inflate Item Layout for Ingredient
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.item_ingredient_input, ingredientsContainer, false)
 
-        // Setup Unit Spinner
+        // Setup Unit Spinner inside the row
         val unitSpinner = view.findViewById<Spinner>(R.id.ingredient_unit_spinner)
         setupSimpleSpinner(unitSpinner, unitList)
-
-        // Setup Remove Button
-        // Note: item_ingredient_input.xml doesn't have a remove button in the code I gave previously.
-        // If you want one, add it to the XML. For now, assuming no remove button on this complex row
-        // OR you can add a long-click listener to remove.
-        // Let's skip the remove button for brevity unless your XML has it.
 
         ingredientsContainer.addView(view)
     }
 
     private fun addStepInput() {
+        // Inflate Item Layout for Step
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.item_step_input, stepsContainer, false)
 
+        // Setup Step Number
         val stepNum = view.findViewById<TextView>(R.id.step_number)
         stepNum.text = (stepsContainer.childCount + 1).toString()
 
+        // Setup Delete Button
         val btnRemove = view.findViewById<ImageButton>(R.id.remove_button)
         btnRemove.setOnClickListener {
             stepsContainer.removeView(view)
@@ -141,6 +141,7 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
             renumberSteps()
         }
 
+        // Setup Image Click
         val imageContainer = view.findViewById<View>(R.id.step_image_container)
         imageContainer.setOnClickListener {
             isPickingMainImage = false
@@ -151,7 +152,7 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
         stepsContainer.addView(view)
     }
 
-    // --- LOGIC: Upload & Save ---
+    // --- UPLOAD PROCESS ---
 
     private fun startUploadProcess() {
         if (mainImageUri == null || inputName.text.isEmpty()) {
@@ -188,15 +189,11 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
         if (imageUri != null) {
             val filename = UUID.randomUUID().toString()
             val ref = Firebase.storage.reference.child("recipe_step_images/$filename.jpg")
-
             ref.putFile(imageUri).addOnSuccessListener {
                 ref.downloadUrl.addOnSuccessListener { downloadUrl ->
                     stepDataList.add(hashMapOf("text" to text, "imageUrl" to downloadUrl.toString()))
                     uploadStepImagesRecursive(mainImageUrl, index + 1, stepDataList)
                 }
-            }.addOnFailureListener {
-                stepDataList.add(hashMapOf("text" to text, "imageUrl" to ""))
-                uploadStepImagesRecursive(mainImageUrl, index + 1, stepDataList)
             }
         } else {
             if (text.isNotEmpty()) {
@@ -210,7 +207,6 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
         val user = Firebase.auth.currentUser ?: return
         val db = Firebase.firestore
 
-        // Collect 3-Part Ingredients
         val ingredientsList = mutableListOf<Map<String, String>>()
         for (i in 0 until ingredientsContainer.childCount) {
             val row = ingredientsContainer.getChildAt(i)
@@ -219,20 +215,22 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
             val unitSpinner = row.findViewById<Spinner>(R.id.ingredient_unit_spinner)
 
             val name = nameInput.text.toString().trim()
-            val quantity = quantityInput.text.toString().trim()
+            val qty = quantityInput.text.toString().trim()
             val unit = unitSpinner.selectedItem.toString()
 
             if (name.isNotEmpty()) {
-                ingredientsList.add(mapOf("name" to name, "quantity" to quantity, "unit" to unit))
+                ingredientsList.add(mapOf("name" to name, "quantity" to qty, "unit" to unit))
             }
         }
 
         db.collection("users").document(user.uid).get().addOnSuccessListener { userDoc ->
             val authorName = userDoc.getString("name") ?: "Chef"
+            val authorProfileImage = userDoc.getString("profileImageUrl") ?: ""
 
             val recipeMap = hashMapOf(
                 "authorId" to user.uid,
                 "authorName" to authorName,
+                "authorProfileImage" to authorProfileImage,
                 "title" to inputName.text.toString(),
                 "description" to inputDesc.text.toString(),
                 "category" to spinnerCategory.selectedItem.toString(),
@@ -240,7 +238,7 @@ class AddPostFragment : Fragment(R.layout.fragment_add_post) {
                 "servings" to inputServings.text.toString(),
                 "difficulty" to spinnerDifficulty.selectedItem.toString(),
                 "imageUrl" to mainImageUrl,
-                "ingredients" to ingredientsList, // Now List<Map>
+                "ingredients" to ingredientsList,
                 "steps" to stepsData,
                 "likes" to 0,
                 "createdAt" to System.currentTimeMillis()
