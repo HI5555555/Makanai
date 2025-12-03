@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -21,6 +23,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+
+        // ✓ Read API key from local.properties
+        val geminiApiKey: String = gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY")
+
+        // 👇 ADD THIS LINE to read the key from local.properties
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+
+    }
+
+    buildFeatures {
+        buildConfig = true // 👈 THIS MUST BE TRUE
     }
 
     buildTypes {
@@ -71,5 +85,11 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     //
     implementation("io.coil-kt:coil:2.6.0")
+    // Google AI SDK for Android (Gemini)
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
+    // Markwon for rendering Markdown
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-tables:4.6.2")
 
 }
