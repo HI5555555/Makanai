@@ -58,7 +58,6 @@
             app:layout_constraintEnd_toStartOf="@id/like_button"
             app:layout_constraintTop_toTopOf="parent" />
 
-
         <ImageButton
             android:id="@+id/edit_button"
             android:layout_width="48dp"
@@ -71,9 +70,6 @@
             app:tint="@android:color/black"
             app:layout_constraintEnd_toStartOf="@id/delete_button"
             app:layout_constraintTop_toTopOf="parent" />
-
-
-
 
         <LinearLayout
             android:id="@+id/content_layout"
@@ -94,7 +90,7 @@
                 android:textColor="@android:color/black"
                 android:textSize="24sp"
                 android:textStyle="bold"
-                tools:text="アボカドトーストとポーチドエッグ" />
+                tools:text="アボカドトースト" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -102,7 +98,6 @@
                 android:layout_marginTop="16dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
                 <androidx.cardview.widget.CardView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
@@ -115,7 +110,6 @@
                         android:scaleType="centerCrop"
                         tools:src="@tools:sample/avatars" />
                 </androidx.cardview.widget.CardView>
-
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -144,7 +138,7 @@
                 android:layout_marginTop="16dp"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
-                tools:text="栄養たっぷりで美味しい朝食メニュー。一日を元気にスタートするのにぴったりです！" />
+                tools:text="美味しい朝食メニュー。" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -228,23 +222,216 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="材料"
-                android:textColor="@android:color/black"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="材料"
+                    android:textColor="@android:color/black"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <LinearLayout
+                    android:id="@+id/btn_ai_analysis"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_ai_button"
+                    android:gravity="center"
+                    android:paddingHorizontal="12dp"
+                    android:clickable="true"
+                    android:focusable="true">
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_sparkles"
+                        app:tint="@android:color/white" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="栄養分析"
+                        android:textColor="@android:color/white"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ai_analysis_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_ai_panel"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_sparkles"
+                        app:tint="#8BC34A"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="AI栄養分析結果"
+                        android:textStyle="bold"
+                        android:textColor="#333333"/>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● 1人分の栄養価 (推定値)"
+                    android:textSize="12sp"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@android:color/darker_gray"/>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="2"
+                    android:layout_marginTop="8dp">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="#FFF3E0"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="エネルギー" android:textSize="10sp" android:textColor="#757575"/>
+                        <TextView android:id="@+id/ai_cal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--- kcal" android:textSize="16sp" android:textStyle="bold" android:textColor="#FF5722"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="#E8F5E9"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="タンパク質" android:textSize="10sp" android:textColor="#757575"/>
+                        <TextView android:id="@+id/ai_protein" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--- g" android:textSize="16sp" android:textStyle="bold" android:textColor="#4CAF50"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="#E3F2FD"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_marginTop="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="脂質" android:textSize="10sp" android:textColor="#757575"/>
+                        <TextView android:id="@+id/ai_fat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--- g" android:textSize="16sp" android:textStyle="bold" android:textColor="#2196F3"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="#FFFDE7"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginTop="4dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="炭水化物" android:textSize="10sp" android:textColor="#757575"/>
+                        <TextView android:id="@+id/ai_carbs" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--- g" android:textSize="16sp" android:textStyle="bold" android:textColor="#FBC02D"/>
+                    </LinearLayout>
+                </GridLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● 主要栄養素の詳細"
+                    android:textSize="12sp"
+                    android:layout_marginTop="16dp"
+                    android:textColor="@android:color/darker_gray"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+                        <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="食物繊維" android:textSize="11sp"/>
+                        <TextView android:id="@+id/ai_fiber_val" android:layout_width="50dp" android:layout_height="wrap_content" android:text="-" android:textSize="11sp"/>
+                        <ProgressBar android:id="@+id/ai_fiber_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:progressDrawable="@drawable/progress_green" android:max="100"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+                        <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="ビタミン" android:textSize="11sp"/>
+                        <TextView android:id="@+id/ai_vit_val" android:layout_width="50dp" android:layout_height="wrap_content" android:text="-" android:textSize="11sp"/>
+                        <ProgressBar android:id="@+id/ai_vit_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:progressDrawable="@drawable/progress_green" android:max="100"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <TextView android:layout_width="80dp" android:layout_height="wrap_content" android:text="ミネラル" android:textSize="11sp"/>
+                        <TextView android:id="@+id/ai_min_val" android:layout_width="50dp" android:layout_height="wrap_content" android:text="-" android:textSize="11sp"/>
+                        <ProgressBar android:id="@+id/ai_min_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:progressDrawable="@drawable/progress_green" android:max="100"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="● 健康効果"
+                    android:textSize="12sp"
+                    android:layout_marginTop="16dp"
+                    android:textColor="#2196F3"/>
+                <TextView
+                    android:id="@+id/ai_health_tips"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="・分析中..."/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="✨ この栄養分析はAIによって生成された推定値です。"
+                    android:textSize="10sp"
+                    android:layout_marginTop="16dp"
+                    android:textColor="@android:color/darker_gray"
+                    android:background="#F5F5F5"
+                    android:padding="8dp"/>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/detail_ingredients_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="@android:color/black"
-                tools:text="・全粒粉パン 2枚\n・熟したアボカド 1個\n・卵 2個" />
+                tools:text="・材料" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -267,7 +454,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="コメント (2)"
+                android:text="コメント (0)"
                 android:textColor="@android:color/black"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -281,10 +468,9 @@
                 tools:listitem="@layout/item_comment"
                 tools:itemCount="2"/>
 
-            <LinearLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
                 android:layout_marginTop="16dp">
 
                 <androidx.cardview.widget.CardView
@@ -314,7 +500,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="bottom">
-
                     <ImageButton
                         android:id="@+id/btn_add_comment_image"
                         android:layout_width="40dp"
@@ -325,7 +510,6 @@
                         android:backgroundTint="#F0F0F0"
                         android:src="@drawable/ic_camera_alt"
                         app:tint="@android:color/darker_gray" />
-
                     <EditText
                         android:id="@+id/comment_input"
                         android:layout_width="0dp"
@@ -336,7 +520,6 @@
                         android:padding="12dp"
                         android:minHeight="48dp"
                         android:layout_marginEnd="8dp"/>
-
                     <ImageButton
                         android:id="@+id/comment_send_button"
                         android:layout_width="48dp"
@@ -346,7 +529,7 @@
                         android:src="@drawable/ic_send"
                         app:tint="@android:color/white" />
                 </LinearLayout>
-            </LinearLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>

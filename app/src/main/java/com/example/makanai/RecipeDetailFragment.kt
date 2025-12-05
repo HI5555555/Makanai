@@ -1,31 +1,32 @@
 package com.example.makanai
 
-import android.app.AlertDialog // Added for Delete Dialog
+import android.app.AlertDialog
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.CircleCropTransformation
+import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.util.Date
 import java.util.UUID
-
+import android.view.LayoutInflater
 class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
 
     private val args: RecipeDetailFragmentArgs by navArgs()
@@ -33,17 +34,41 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     private val auth = Firebase.auth
     private val storage = Firebase.storage
 
-    // Comment UI Variables
+    // AI Model
+    private val API_KEY = BuildConfig.GEMINI_API_KEY
+    private val generativeModel = GenerativeModel(
+        modelName = "gemini-2.5-flash",
+        apiKey = API_KEY
+    )
+
+    // UI Variables
     private lateinit var commentAdapter: CommentAdapter
     private lateinit var commentInput: EditText
     private lateinit var commentsTitle: TextView
-
-    // Comment Image Variables
     private lateinit var previewCard: CardView
     private lateinit var previewImage: ImageView
-    private var selectedCommentImageUri: Uri? = null
 
-    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    // AI UI Variables
+    private lateinit var aiButton: LinearLayout
+    private lateinit var aiPanel: LinearLayout
+    private lateinit var tvCal: TextView
+    private lateinit var tvProtein: TextView
+    private lateinit var tvFat: TextView
+    private lateinit var tvCarb: TextView
+    private lateinit var tvTips: TextView
+
+    // Detailed Nutrients UI
+    private lateinit var tvFiberVal: TextView
+    private lateinit var pbFiber: ProgressBar
+    private lateinit var tvVitVal: TextView
+    private lateinit var pbVit: ProgressBar
+    private lateinit var tvMinVal: TextView
+    private lateinit var pbMin: ProgressBar
+
+    private var selectedCommentImageUri: Uri? = null
+    private var currentIngredientsText: String = "" // Store ingredients for AI
+
+    private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             selectedCommentImageUri = uri
             previewCard.visibility = View.VISIBLE
@@ -68,12 +93,9 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val stepsContainer: LinearLayout = view.findViewById(R.id.detail_steps_container)
         val backButton: ImageButton = view.findViewById(R.id.back_button)
         val likeButton: ImageButton = view.findViewById(R.id.like_button)
-
-        // Delete and Edit Buttons
         val deleteButton: ImageButton = view.findViewById(R.id.delete_button)
         val editButton: ImageButton = view.findViewById(R.id.edit_button)
 
-        // Comment Views
         val commentsRecyclerView: RecyclerView = view.findViewById(R.id.comments_recycler_view)
         commentsTitle = view.findViewById(R.id.comments_title)
         commentInput = view.findViewById(R.id.comment_input)
@@ -83,27 +105,39 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         previewImage = view.findViewById(R.id.comment_image_preview)
         val removeImageButton: ImageButton = view.findViewById(R.id.remove_comment_image)
 
-        // --- 2. Get Recipe ID ---
+        // AI Views
+        aiButton = view.findViewById(R.id.btn_ai_analysis)
+        aiPanel = view.findViewById(R.id.ai_analysis_panel)
+        tvCal = view.findViewById(R.id.ai_cal)
+        tvProtein = view.findViewById(R.id.ai_protein)
+        tvFat = view.findViewById(R.id.ai_fat)
+        tvCarb = view.findViewById(R.id.ai_carbs)
+        tvTips = view.findViewById(R.id.ai_health_tips)
+
+        // Detailed Nutrient Views
+        tvFiberVal = view.findViewById(R.id.ai_fiber_val)
+        pbFiber = view.findViewById(R.id.ai_fiber_progress)
+        tvVitVal = view.findViewById(R.id.ai_vit_val)
+        pbVit = view.findViewById(R.id.ai_vit_progress)
+        tvMinVal = view.findViewById(R.id.ai_min_val)
+        pbMin = view.findViewById(R.id.ai_min_progress)
+
         val recipeId = args.recipeId.toString()
 
-        // --- 3. Fetch Recipe Data ---
+        // --- 2. Fetch Recipe Data ---
         db.collection("recipes").document(recipeId).get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val recipe = document.toObject(Recipe::class.java)
-
                     recipe?.let { r ->
-                        // Load Main Info
-                        if (r.imageUrl.isNotEmpty()) {
-                            recipeImage.load(r.imageUrl) { crossfade(true) }
-                        }
+                        if (r.imageUrl.isNotEmpty()) recipeImage.load(r.imageUrl) { crossfade(true) }
                         title.text = r.title
                         description.text = r.description
                         prepTime.text = r.prepTime
                         servings.text = r.servings
                         difficulty.text = r.difficulty
 
-                        // --- Format Ingredients (Handling new Map structure) ---
+                        // Format Ingredients
                         val formattedIngredients = StringBuilder()
                         for (item in r.ingredients) {
                             if (item is Map<*, *>) {
@@ -114,183 +148,190 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                                     formattedIngredients.append("・ $name $qty$unit\n")
                                 }
                             } else {
-                                // Fallback for old string data
                                 formattedIngredients.append("・ $item\n")
                             }
                         }
-                        ingredientsList.text = formattedIngredients.toString().trim()
+                        currentIngredientsText = formattedIngredients.toString().trim()
+                        ingredientsList.text = currentIngredientsText
 
-                        // --- Load Steps (Dynamic) ---
+                        // Load Steps
                         stepsContainer.removeAllViews()
                         r.steps.forEachIndexed { index, stepMap ->
                             val stepView = LayoutInflater.from(context).inflate(R.layout.item_step_display, stepsContainer, false)
-
                             stepView.findViewById<TextView>(R.id.step_number).text = (index + 1).toString()
                             stepView.findViewById<TextView>(R.id.step_text).text = stepMap["text"] ?: ""
-
                             val imgUrl = stepMap["imageUrl"]
-                            val imgCard = stepView.findViewById<CardView>(R.id.step_image_card)
-                            val imgView = stepView.findViewById<ImageView>(R.id.step_image)
-
                             if (!imgUrl.isNullOrEmpty()) {
+                                val imgCard = stepView.findViewById<CardView>(R.id.step_image_card)
+                                val imgView = stepView.findViewById<ImageView>(R.id.step_image)
                                 imgCard.visibility = View.VISIBLE
                                 imgView.load(imgUrl) { crossfade(true) }
-                            } else {
-                                imgCard.visibility = View.GONE
                             }
                             stepsContainer.addView(stepView)
                         }
 
-                        // --- Load Author Info ---
-                        if (r.authorId.isNotEmpty()) {
-                            loadAuthorInfo(r.authorId, authorName, authorImage, authorDesc)
-                        } else {
-                            authorName.text = "Unknown Chef"
-                        }
+                        if (r.authorId.isNotEmpty()) loadAuthorInfo(r.authorId, authorName, authorImage, authorDesc)
 
-                        // --- Check Ownership (Show Edit/Delete) ---
+                        // Check Ownership
                         val currentUser = auth.currentUser
                         if (currentUser != null && r.authorId == currentUser.uid) {
                             deleteButton.visibility = View.VISIBLE
                             editButton.visibility = View.VISIBLE
-
-                            deleteButton.setOnClickListener {
-                                showDeleteConfirmationDialog(recipeId)
-                            }
+                            deleteButton.setOnClickListener { showDeleteConfirmationDialog(recipeId) }
                             editButton.setOnClickListener {
                                 val action = RecipeDetailFragmentDirections.actionRecipeDetailFragmentToEditPostFragment(recipeId)
                                 findNavController().navigate(action)
                             }
-                        } else {
-                            deleteButton.visibility = View.GONE
-                            editButton.visibility = View.GONE
                         }
                     }
                 }
             }
 
-        // --- 4. Like Button Logic ---
+        // --- 3. AI Analysis Button Logic ---
+        aiButton.setOnClickListener {
+            if (aiPanel.visibility == View.VISIBLE) {
+                aiPanel.visibility = View.GONE
+            } else {
+                aiPanel.visibility = View.VISIBLE
+                // Only analyze if we have ingredients and haven't done it yet
+                if (currentIngredientsText.isNotEmpty() && tvCal.text == "--- kcal") {
+                    performAiAnalysis(currentIngredientsText)
+                }
+            }
+        }
+
+        // --- 4. Like Logic ---
+        setupLikeButton(recipeId, likeButton)
+
+        // --- 5. Comments ---
+        commentAdapter = CommentAdapter(emptyList())
+        commentsRecyclerView.adapter = commentAdapter
+        commentsRecyclerView.isNestedScrollingEnabled = false // Fix nested scroll issue
+        fetchComments(recipeId)
+
+        // --- 6. Listeners ---
+        backButton.setOnClickListener { findNavController().popBackStack() }
+        addImageButton.setOnClickListener { pickImage.launch("image/*") }
+        removeImageButton.setOnClickListener { selectedCommentImageUri = null; previewCard.visibility = View.GONE }
+        sendButton.setOnClickListener { handleSendComment(recipeId) }
+    }
+
+    // --- AI ANALYSIS FUNCTION ---
+    private fun performAiAnalysis(ingredients: String) {
+        tvTips.text = "AIが分析中..."
+        // Reset bars
+        pbFiber.progress = 0
+        pbVit.progress = 0
+        pbMin.progress = 0
+
+        val prompt = """
+            You are a nutritionist. Analyze these ingredients for 1 serving:
+            $ingredients
+            
+            Output ONLY a JSON object. NO markdown. NO explanation.
+            Target language: Japanese (日本語).
+            
+            Required JSON Format:
+            {
+              "calories": "123 kcal",
+              "protein": "12g",
+              "fat": "10g",
+              "carbs": "30g",
+              "fiber": "5g",          // String value
+              "fiber_score": 50,      // Integer 0-100 for progress bar
+              "vitamin": "ビタミンC",   // Main vitamin found
+              "vitamin_score": 80,    // Integer 0-100
+              "mineral": "鉄分",       // Main mineral found
+              "mineral_score": 40,    // Integer 0-100
+              "health_benefits": "• Point 1\n• Point 2\n• Point 3"
+            }
+        """.trimIndent()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = generativeModel.generateContent(prompt)
+                var text = response.text ?: ""
+                text = text.replace("```json", "").replace("```", "").trim()
+
+                val json = JSONObject(text)
+
+                // Macros
+                tvCal.text = json.optString("calories", "---")
+                tvProtein.text = json.optString("protein", "---")
+                tvFat.text = json.optString("fat", "---")
+                tvCarb.text = json.optString("carbs", "---")
+
+                // Details
+                tvFiberVal.text = json.optString("fiber", "-")
+                tvVitVal.text = json.optString("vitamin", "-")
+                tvMinVal.text = json.optString("mineral", "-")
+
+                // Progress Bars (Animate or Set)
+                pbFiber.setProgress(json.optInt("fiber_score", 0), true)
+                pbVit.setProgress(json.optInt("vitamin_score", 0), true)
+                pbMin.setProgress(json.optInt("mineral_score", 0), true)
+
+                // Health Tips
+                tvTips.text = json.optString("health_benefits", "解析できませんでした")
+
+            } catch (e: Exception) {
+                Log.e("AI_Analysis", "Error", e)
+                tvTips.text = "分析エラー: サーバーが混み合っています"
+            }
+        }
+    }
+
+    // --- HELPER FUNCTIONS ---
+
+    private fun setupLikeButton(recipeId: String, likeButton: ImageButton) {
         val currentUser = auth.currentUser
         if (currentUser != null) {
             val recipeRef = db.collection("recipes").document(recipeId)
-
             recipeRef.addSnapshotListener { snapshot, e ->
-                if (e != null || snapshot == null || !snapshot.exists()) return@addSnapshotListener
-
+                if (e != null || snapshot == null) return@addSnapshotListener
                 val likedBy = snapshot.get("likedBy") as? List<String> ?: emptyList()
-                val isLiked = likedBy.contains(currentUser.uid)
-
-                if (isLiked) {
-                    likeButton.setImageResource(R.drawable.ic_heart_outline) // Should be filled icon ideally
+                if (likedBy.contains(currentUser.uid)) {
+                    likeButton.setImageResource(R.drawable.ic_heart_outline)
                     likeButton.setColorFilter(Color.parseColor("#FF6347"))
                 } else {
                     likeButton.setImageResource(R.drawable.ic_heart_outline)
                     likeButton.setColorFilter(Color.BLACK)
                 }
             }
-        }
-
-        likeButton.setOnClickListener {
-            if (currentUser == null) {
-                Toast.makeText(context, "Please login to like", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val recipeRef = db.collection("recipes").document(recipeId)
-            db.runTransaction { transaction ->
-                val snapshot = transaction.get(recipeRef)
-                val currentLikes = snapshot.getLong("likes") ?: 0
-                val likedBy = snapshot.get("likedBy") as? List<String> ?: emptyList()
-
-                if (likedBy.contains(currentUser.uid)) {
-                    val newLikes = if (currentLikes > 0) currentLikes - 1 else 0
-                    transaction.update(recipeRef, "likes", newLikes)
-                    transaction.update(recipeRef, "likedBy", FieldValue.arrayRemove(currentUser.uid))
-                } else {
-                    transaction.update(recipeRef, "likes", currentLikes + 1)
-                    transaction.update(recipeRef, "likedBy", FieldValue.arrayUnion(currentUser.uid))
-                }
-            }
-        }
-
-        // --- 5. Setup Comments ---
-        commentAdapter = CommentAdapter(emptyList())
-        commentsRecyclerView.adapter = commentAdapter
-        fetchComments(recipeId)
-
-        // --- 6. Click Listeners ---
-        backButton.setOnClickListener { findNavController().popBackStack() }
-        addImageButton.setOnClickListener { pickImage.launch("image/*") }
-        removeImageButton.setOnClickListener {
-            selectedCommentImageUri = null
-            previewCard.visibility = View.GONE
-        }
-        sendButton.setOnClickListener { handleSendComment(recipeId) }
-    }
-
-    // --- HELPER FUNCTIONS ---
-
-    private fun loadAuthorInfo(authorId: String, nameView: TextView, imageView: ImageView, descView: TextView) {
-        db.collection("users").document(authorId).get().addOnSuccessListener { userDoc ->
-            if (userDoc.exists()) {
-                nameView.text = userDoc.getString("name") ?: "Chef"
-                descView.text = userDoc.getString("bio") ?: "Home Cook"
-                val photoUrl = userDoc.getString("profileImageUrl")
-                if (!photoUrl.isNullOrEmpty()) {
-                    imageView.load(photoUrl) {
-                        transformations(CircleCropTransformation())
-                        placeholder(R.drawable.ic_profile)
+            likeButton.setOnClickListener {
+                db.runTransaction { transaction ->
+                    val snapshot = transaction.get(recipeRef)
+                    val currentLikes = snapshot.getLong("likes") ?: 0
+                    val likedBy = snapshot.get("likedBy") as? List<String> ?: emptyList()
+                    if (likedBy.contains(currentUser.uid)) {
+                        transaction.update(recipeRef, "likes", if(currentLikes>0) currentLikes-1 else 0)
+                        transaction.update(recipeRef, "likedBy", FieldValue.arrayRemove(currentUser.uid))
+                    } else {
+                        transaction.update(recipeRef, "likes", currentLikes + 1)
+                        transaction.update(recipeRef, "likedBy", FieldValue.arrayUnion(currentUser.uid))
                     }
                 }
             }
+        } else {
+            likeButton.setOnClickListener { Toast.makeText(context, "Please login", Toast.LENGTH_SHORT).show() }
         }
-    }
-
-    private fun fetchComments(recipeId: String) {
-        db.collection("recipes").document(recipeId).collection("comments")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshots, e ->
-                if (e != null) return@addSnapshotListener
-                val commentsList = mutableListOf<Comment>()
-                if (snapshots != null) {
-                    for (doc in snapshots) {
-                        try {
-                            val comment = doc.toObject(Comment::class.java)
-                            commentsList.add(comment)
-                        } catch (e: Exception) {
-                            Log.e("RecipeDetail", "Error parsing comment", e)
-                        }
-                    }
-                }
-                commentAdapter.updateData(commentsList)
-                commentsTitle.text = "コメント (${commentsList.size})"
-            }
     }
 
     private fun handleSendComment(recipeId: String) {
         val text = commentInput.text.toString().trim()
         val user = auth.currentUser
-        if (user == null) {
-            Toast.makeText(context, "Please login", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val imageUri = selectedCommentImageUri
-        if (text.isEmpty() && imageUri == null) return
+        if (user == null) { Toast.makeText(context, "Login required", Toast.LENGTH_SHORT).show(); return }
+        if (text.isEmpty() && selectedCommentImageUri == null) return
 
         commentInput.isEnabled = false
         Toast.makeText(context, "Posting...", Toast.LENGTH_SHORT).show()
 
-        if (imageUri != null) {
+        if (selectedCommentImageUri != null) {
             val filename = UUID.randomUUID().toString()
             val ref = storage.reference.child("comment_images/$filename.jpg")
-            ref.putFile(imageUri).addOnSuccessListener {
-                ref.downloadUrl.addOnSuccessListener { uri ->
-                    saveCommentToFirestore(recipeId, user, text, uri.toString())
-                }
-            }.addOnFailureListener {
-                commentInput.isEnabled = true
-                Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
-            }
+            ref.putFile(selectedCommentImageUri!!).addOnSuccessListener {
+                ref.downloadUrl.addOnSuccessListener { uri -> saveCommentToFirestore(recipeId, user, text, uri.toString()) }
+            }.addOnFailureListener { commentInput.isEnabled = true }
         } else {
             saveCommentToFirestore(recipeId, user, text, "")
         }
@@ -300,56 +341,48 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         db.collection("users").document(user.uid).get().addOnSuccessListener { document ->
             val authorName = document.getString("name") ?: "User"
             val authorImage = document.getString("profileImageUrl") ?: ""
+            val newComment = Comment("", user.uid, authorName, authorImage, text, imageUrl, Date())
 
-            val newComment = Comment(
-                id = "",
-                authorId = user.uid,
-                authorName = authorName,
-                authorImageUrl = authorImage,
-                text = text,
-                commentImageUrl = imageUrl,
-                timestamp = Date()
-            )
-
-            db.collection("recipes").document(recipeId).collection("comments")
-                .add(newComment)
+            db.collection("recipes").document(recipeId).collection("comments").add(newComment)
                 .addOnSuccessListener {
                     commentInput.setText("")
                     commentInput.isEnabled = true
                     selectedCommentImageUri = null
                     previewCard.visibility = View.GONE
-                    Toast.makeText(context, "Comment Posted!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Posted!", Toast.LENGTH_SHORT).show()
                 }
-                .addOnFailureListener {
-                    commentInput.isEnabled = true
-                    Toast.makeText(context, "Failed to post", Toast.LENGTH_SHORT).show()
-                }
+        }
+    }
+
+    private fun fetchComments(recipeId: String) {
+        db.collection("recipes").document(recipeId).collection("comments")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshots, _ ->
+                val list = snapshots?.toObjects(Comment::class.java) ?: emptyList()
+                commentAdapter.updateData(list)
+                commentsTitle.text = "コメント (${list.size})"
+            }
+    }
+
+    private fun loadAuthorInfo(authorId: String, nameView: TextView, imageView: ImageView, descView: TextView) {
+        db.collection("users").document(authorId).get().addOnSuccessListener { userDoc ->
+            if (userDoc.exists()) {
+                nameView.text = userDoc.getString("name") ?: "Chef"
+                descView.text = userDoc.getString("bio") ?: "Home Cook"
+                val photoUrl = userDoc.getString("profileImageUrl")
+                if (!photoUrl.isNullOrEmpty()) imageView.load(photoUrl) { transformations(CircleCropTransformation()); placeholder(R.drawable.ic_profile) }
+            }
         }
     }
 
     private fun showDeleteConfirmationDialog(recipeId: String) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Delete Recipe")
-            .setMessage("Are you sure you want to delete this recipe? This action cannot be undone.")
-            .setPositiveButton("Delete") { dialog, _ ->
-                deleteRecipe(recipeId)
-                dialog.dismiss()
+            .setTitle("Delete")
+            .setMessage("Delete this recipe?")
+            .setPositiveButton("Delete") { _, _ ->
+                db.collection("recipes").document(recipeId).delete().addOnSuccessListener { findNavController().popBackStack() }
             }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancel", null)
             .show()
-    }
-
-    private fun deleteRecipe(recipeId: String) {
-        db.collection("recipes").document(recipeId)
-            .delete()
-            .addOnSuccessListener {
-                Toast.makeText(context, "Recipe deleted", Toast.LENGTH_SHORT).show()
-                findNavController().popBackStack()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "Error deleting recipe: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 }
