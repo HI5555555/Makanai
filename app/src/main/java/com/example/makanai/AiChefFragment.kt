@@ -2,7 +2,9 @@ package com.example.makanai
 
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -22,7 +24,7 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Views
+        // --- 1. Find Views ---
         val inputIngredients = view.findViewById<EditText>(R.id.ingredients_input)
         val generateButton = view.findViewById<Button>(R.id.btn_generate_recipe)
         val loadingView = view.findViewById<LinearLayout>(R.id.loading_view)
@@ -34,11 +36,13 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
         val ingredientsView = view.findViewById<TextView>(R.id.ai_recipe_ingredients)
         val stepsView = view.findViewById<TextView>(R.id.ai_recipe_steps)
 
-        // Nutrition Views
+        // Nutrition Views (Macros)
         val tvCal = view.findViewById<TextView>(R.id.ai_cal)
         val tvProtein = view.findViewById<TextView>(R.id.ai_protein)
         val tvFat = view.findViewById<TextView>(R.id.ai_fat)
         val tvCarb = view.findViewById<TextView>(R.id.ai_carbs)
+
+        // Nutrition Views (Details & Progress)
         val tvFiber = view.findViewById<TextView>(R.id.ai_fiber_val)
         val pbFiber = view.findViewById<ProgressBar>(R.id.ai_fiber_progress)
         val tvVit = view.findViewById<TextView>(R.id.ai_vit_val)
@@ -47,7 +51,7 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
         val pbMin = view.findViewById<ProgressBar>(R.id.ai_min_progress)
         val tvTips = view.findViewById<TextView>(R.id.ai_health_tips)
 
-        // Gemini Model
+        // --- 2. Initialize Gemini Model --
         val generativeModel = GenerativeModel(
             modelName = "gemini-2.5-flash",
             apiKey = API_KEY
@@ -57,35 +61,35 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
             val ingredients = inputIngredients.text.toString()
 
             if (ingredients.isBlank()) {
-                // Show a generic error message since we don't know the language yet
-                Toast.makeText(context, "Please enter ingredients", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "食材を入力してください", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // UI State
+            // UI State: Loading
             loadingView.visibility = View.VISIBLE
             resultContainer.visibility = View.GONE
             generateButton.isEnabled = false
 
-            // --- INTELLIGENT MULTI-LANGUAGE PROMPT ---
+            // --- 3. ROBUST PROMPT ---
             val prompt = """
-                You are a professional chef and nutritionist.
-                User ingredients: "$ingredients"
+                You are a professional chef assistant. 
+                User Input: "$ingredients"
                 
                 Task:
-                1. Detect the language of the user's ingredients (e.g., English, Thai, Japanese).
-                2. Create ONE delicious recipe using these ingredients.
-                3. WRITE THE RECIPE IN THE SAME LANGUAGE AS THE INGREDIENTS.
-                4. Analyze the nutrition.
+                1. Analyze the user's input.
+                2. IF the input does NOT contain food ingredients (e.g., "camera", "hello", "car"), 
+                   RETURN A JSON with "is_food": false and a "description" error message.
+                3. IF the input contains valid ingredients, create a recipe in the detected language (or Japanese if unsure).
                 
-                Output strictly valid JSON only (no markdown, no code blocks).
+                Output strictly valid JSON only (no markdown).
                 
-                JSON Structure (Keys must be English, Values must be in the detected language):
+                JSON Structure:
                 {
-                  "title": "Recipe Name (in detected language)",
-                  "description": "Short description (in detected language)",
-                  "ingredients_text": "• Item 1\n• Item 2... (in detected language)",
-                  "steps_text": "1. Step one\n2. Step two... (in detected language)",
+                  "is_food": true,
+                  "title": "Recipe Name",
+                  "description": "Short description",
+                  "ingredients_text": "• Item 1\n• Item 2...",
+                  "steps_text": "1. Step one\n2. Step two...",
                   "nutrition": {
                      "calories": "350 kcal",
                      "protein": "20g",
@@ -97,59 +101,70 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
                      "vitamin_score": 80, // Integer 0-100
                      "mineral": "Iron",
                      "mineral_score": 40, // Integer 0-100
-                     "tips": "Health benefits (in detected language)..."
+                     "tips": "Health benefits here..."
                   }
                 }
             """.trimIndent()
 
+            // --- 4. Call AI ---
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
                     val response = generativeModel.generateContent(prompt)
 
-                    // Clean JSON string (remove markdown if AI adds it)
+                    // Clean JSON string
                     var jsonText = response.text ?: ""
                     jsonText = jsonText.replace("```json", "").replace("```", "").trim()
 
                     val json = JSONObject(jsonText)
-                    val nut = json.getJSONObject("nutrition")
+                    val isFood = json.optBoolean("is_food", true)
 
-                    // 1. Set Recipe Text
-                    titleView.text = json.optString("title", "Recipe")
-                    descView.text = json.optString("description", "")
-                    ingredientsView.text = json.optString("ingredients_text", "")
-                    stepsView.text = json.optString("steps_text", "")
+                    if (!isFood) {
+                        // Handle Non-Food Input
+                        loadingView.visibility = View.GONE
+                        val errorMsg = json.optString("description", "食材を入力してください")
+                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
 
-                    // 2. Set Nutrition Data
-                    tvCal.text = nut.optString("calories")
-                    tvProtein.text = nut.optString("protein")
-                    tvFat.text = nut.optString("fat")
-                    tvCarb.text = nut.optString("carbs")
+                    } else {
+                        // Handle Valid Recipe
+                        val nut = json.getJSONObject("nutrition")
 
-                    tvFiber.text = nut.optString("fiber")
-                    pbFiber.progress = nut.optInt("fiber_score")
+                        // Set Text
+                        titleView.text = json.optString("title", "Recipe")
+                        descView.text = json.optString("description", "")
+                        ingredientsView.text = json.optString("ingredients_text", "")
+                        stepsView.text = json.optString("steps_text", "")
 
-                    tvVit.text = nut.optString("vitamin")
-                    pbVit.progress = nut.optInt("vitamin_score")
+                        // Set Macros
+                        tvCal.text = nut.optString("calories")
+                        tvProtein.text = nut.optString("protein")
+                        tvFat.text = nut.optString("fat")
+                        tvCarb.text = nut.optString("carbs")
 
-                    tvMin.text = nut.optString("mineral")
-                    pbMin.progress = nut.optInt("mineral_score")
+                        // Set Details & Bars
+                        tvFiber.text = nut.optString("fiber")
+                        pbFiber.progress = nut.optInt("fiber_score")
 
-                    tvTips.text = nut.optString("tips")
+                        tvVit.text = nut.optString("vitamin")
+                        pbVit.progress = nut.optInt("vitamin_score")
 
-                    // Show Result
-                    loadingView.visibility = View.GONE
-                    resultContainer.visibility = View.VISIBLE
+                        tvMin.text = nut.optString("mineral")
+                        pbMin.progress = nut.optInt("mineral_score")
+
+                        tvTips.text = nut.optString("tips")
+
+                        // Show UI
+                        loadingView.visibility = View.GONE
+                        resultContainer.visibility = View.VISIBLE
+                    }
 
                 } catch (e: Exception) {
                     loadingView.visibility = View.GONE
                     Log.e("AiChef", "Error", e)
 
-                    // Handle Server Overload (503)
-                    if (e.message?.contains("503") == true || e.message?.contains("overloaded") == true) {
-                        val errorMsg = "Server busy. Please try again."
-                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                    if (e.message?.contains("503") == true) {
+                        Toast.makeText(context, "Server busy. Please try again.", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                     }
                 } finally {
                     generateButton.isEnabled = true

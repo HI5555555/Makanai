@@ -301,42 +301,6 @@
                         android:textColor="@android:color/black"/>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="投稿レシピ数"
-                        android:textColor="@android:color/darker_gray"/>
-                    <TextView
-                        android:id="@+id/info_recipe_count"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="2件"
-                        android:textColor="@android:color/black"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="フォロワー"
-                        android:textColor="@android:color/darker_gray"/>
-                    <TextView
-                        android:id="@+id/info_follower_count"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="1,234人"
-                        android:textColor="@android:color/black"/>
-                </LinearLayout>
             </LinearLayout>
 
             <Button

@@ -1,7 +1,7 @@
 package com.example.makanai
 
 import android.content.pm.PackageManager
-import android.graphics.Color // Make sure this is imported
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,10 +14,11 @@ import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import coil.load
+import coil.transform.CircleCropTransformation
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.example.makanai.R
 
 class SettingsFragment : Fragment() {
 
@@ -33,6 +34,7 @@ class SettingsFragment : Fragment() {
 
         // --- Find Views ---
         val backButton: ImageButton = view.findViewById(R.id.back_button_settings)
+        val userImageView: ImageView = view.findViewById(R.id.settings_user_image) // New
         val username: TextView = view.findViewById(R.id.settings_username)
         val userEmail: TextView = view.findViewById(R.id.settings_user_email)
         val actionButtonLayout: LinearLayout = view.findViewById(R.id.logout_button_layout)
@@ -51,7 +53,18 @@ class SettingsFragment : Fragment() {
             db.collection("users").document(currentUser.uid).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
+                        // 1. Set Name
                         username.text = document.getString("name") ?: "User"
+
+                        // 2. Set Profile Image (New)
+                        val imgUrl = document.getString("profileImageUrl")
+                        if (!imgUrl.isNullOrEmpty()) {
+                            userImageView.load(imgUrl) {
+                                crossfade(true)
+                                transformations(CircleCropTransformation())
+                                placeholder(R.drawable.ic_profile)
+                            }
+                        }
                     } else {
                         username.text = "User"
                     }
@@ -59,9 +72,9 @@ class SettingsFragment : Fragment() {
 
             // Set Button to "Logout" (Red)
             actionButtonText.text = "ログアウト"
-            actionButtonText.setTextColor(Color.parseColor("#B00020")) // Fixed: Use Hex Color
+            actionButtonText.setTextColor(Color.parseColor("#B00020"))
             actionButtonIcon.setImageResource(R.drawable.ic_settings_logout)
-            actionButtonIcon.setColorFilter(Color.parseColor("#B00020")) // Fixed: Use Hex Color
+            actionButtonIcon.setColorFilter(Color.parseColor("#B00020"))
 
             // Logout Logic
             actionButtonLayout.setOnClickListener {
@@ -74,12 +87,13 @@ class SettingsFragment : Fragment() {
             // === GUEST / NOT LOGGED IN STATE ===
             username.text = "Guest"
             userEmail.text = "Not logged in"
+            userImageView.setImageResource(R.drawable.ic_profile) // Default icon
 
             // Set Button to "Login" (Blue)
             actionButtonText.text = "ログイン"
-            actionButtonText.setTextColor(Color.parseColor("#1976D2")) // Fixed: Use Hex Color
+            actionButtonText.setTextColor(Color.parseColor("#1976D2"))
             actionButtonIcon.setImageResource(R.drawable.ic_settings_logout)
-            actionButtonIcon.setColorFilter(Color.parseColor("#1976D2")) // Fixed: Use Hex Color
+            actionButtonIcon.setColorFilter(Color.parseColor("#1976D2"))
 
             // Login Logic
             actionButtonLayout.setOnClickListener {
@@ -97,20 +111,17 @@ class SettingsFragment : Fragment() {
 
         // --- Setup Included Settings Items ---
         setupSettingsItem(view.findViewById(R.id.item_edit_profile), R.drawable.ic_settings_profile, "プロフィールを編集") {
-            // Navigate to Edit Profile
             findNavController().navigate(R.id.action_settingsFragment_to_editProfileFragment)
         }
+        // ... (rest of your items)
         setupSettingsItem(view.findViewById(R.id.item_change_password), R.drawable.ic_settings_password, "パスワードを変更") { showToast("Change Password") }
         setupSettingsItem(view.findViewById(R.id.item_privacy), R.drawable.ic_settings_privacy, "プライバシー") { showToast("Privacy") }
-
         setupSettingsItem(view.findViewById(R.id.item_notifications), R.drawable.ic_settings_notifications, "通知設定") { showToast("Notifications") }
         setupSettingsItem(view.findViewById(R.id.item_language), R.drawable.ic_settings_language, "言語", "日本語") { showToast("Language") }
         setupSettingsItem(view.findViewById(R.id.item_theme), R.drawable.ic_settings_theme, "テーマ", "ライト") { showToast("Theme") }
-
         setupSettingsItem(view.findViewById(R.id.item_help), R.drawable.ic_settings_help, "ヘルプセンター") { showToast("Help") }
         setupSettingsItem(view.findViewById(R.id.item_terms), R.drawable.ic_settings_terms, "利用規約") { showToast("Terms") }
         setupSettingsItem(view.findViewById(R.id.item_policy), R.drawable.ic_settings_policy, "プライバシーポリシー") { showToast("Policy") }
-
 
         // --- Back Button Logic ---
         backButton.setOnClickListener {
