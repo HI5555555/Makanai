@@ -72,39 +72,53 @@ class AiChefFragment : Fragment(R.layout.fragment_ai_chef) {
 
             // --- 3. ROBUST PROMPT ---
             val prompt = """
-                You are a professional chef assistant. 
-                User Input: "$ingredients"
-                
-                Task:
-                1. Analyze the user's input.
-                2. IF the input does NOT contain food ingredients (e.g., "camera", "hello", "car"), 
-                   RETURN A JSON with "is_food": false and a "description" error message.
-                3. IF the input contains valid ingredients, create a recipe in the detected language (or Japanese if unsure).
-                
-                Output strictly valid JSON only (no markdown).
-                
-                JSON Structure:
-                {
-                  "is_food": true,
-                  "title": "Recipe Name",
-                  "description": "Short description",
-                  "ingredients_text": "• Item 1\n• Item 2...",
-                  "steps_text": "1. Step one\n2. Step two...",
-                  "nutrition": {
-                     "calories": "350 kcal",
-                     "protein": "20g",
-                     "fat": "15g",
-                     "carbs": "40g",
-                     "fiber": "5g",
-                     "fiber_score": 60,   // Integer 0-100
-                     "vitamin": "Vit C",
-                     "vitamin_score": 80, // Integer 0-100
-                     "mineral": "Iron",
-                     "mineral_score": 40, // Integer 0-100
-                     "tips": "Health benefits here..."
-                  }
-                }
-            """.trimIndent()
+    You are a professional chef assistant. 
+    User Input: "$ingredients"
+    
+    Task:
+    1. Analyze the user's input to DETECT THE LANGUAGE (e.g., Lao, Japanese, English).
+    2. IF the input does NOT contain food ingredients (e.g., "camera", "hello", "car"), 
+       RETURN A JSON with "is_food": false and a "description" error message in the detected language.
+    3. IF the input contains valid ingredients, create a recipe using MAINLY the provided ingredients.
+       
+    CRITICAL INGREDIENT RULES: 
+    - Use the user's input ingredients as the main components.
+    - You may ONLY add basic pantry staples (e.g., Salt, Pepper, Oil, Soy Sauce, Sugar, Water).
+    - **MARKING EXTRA INGREDIENTS:** For any ingredient that was NOT provided by the user (basic staples), you MUST append "(if available)" in the detected language.
+      - If Japanese: Add "(あれば)" (e.g., "醤油 (あれば)")
+      - If Lao: Add "(ຖ້ามີ)" or equivalent.
+      - If English: Add "(if available)".
+    
+    CRITICAL LANGUAGE RULE:
+    - The JSON **Keys** (e.g., "title", "nutrition") must remain in **English**.
+    - The JSON **Values** (e.g., Recipe Name, Steps, Description) MUST be in the **DETECTED LANGUAGE** of the User Input.
+    - If the user types in Japanese, the content MUST be in Japanese.
+    - If the user types in Lao, the content MUST be in Lao.
+    
+    Output strictly valid JSON only (no markdown).
+    
+    JSON Structure:
+    {
+      "is_food": true,
+      "title": "Recipe Name",
+      "description": "Short description",
+      "ingredients_text": "• Item 1\n• Item 2...",
+      "steps_text": "1. Step one\n2. Step two...",
+      "nutrition": {
+         "calories": "350 kcal",
+         "protein": "20g",
+         "fat": "15g",
+         "carbs": "40g",
+         "fiber": "5g",
+         "fiber_score": 60,   // Integer 0-100
+         "vitamin": "Vit C",
+         "vitamin_score": 80, // Integer 0-100
+         "mineral": "Iron",
+         "mineral_score": 40, // Integer 0-100
+         "tips": "Health benefits here..."
+      }
+    }
+""".trimIndent()
 
             // --- 4. Call AI ---
             viewLifecycleOwner.lifecycleScope.launch {
